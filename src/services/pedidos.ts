@@ -51,3 +51,12 @@ export const enviarPedidoWhatsApp = async (id: string, telefonoTienda: string, m
         console.log("No se pudo actualizar el flag de whatsapp, pero el mensaje se envió.")
     }
 }
+export interface Producto {
+  id: string
+  nombre: string
+  precio: number
+  imagen_url: string
+  // Agregamos estas dos como opcionales (?) para los combos
+  esCombo?: boolean
+  contenido?: { nombre: string; cantidad: number }[]
+}
