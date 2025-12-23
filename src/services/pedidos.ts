@@ -35,16 +35,16 @@ export const crearPedido = async (userId: string | null, items: any[], datosClie
   return data.id
 }
 
-// 2. Función para abrir WhatsApp
+// 2. Función para abrir WhatsApp (CORREGIDA PARA PC Y MÓVIL)
 export const enviarPedidoWhatsApp = async (id: string, telefonoTienda: string, mensaje: string) => {
-    // Usamos wa.me que es el estándar más compatible
-    // encodeURIComponent es CLAVE para que no se rompa el mensaje con espacios o tildes
-    const url = `https://wa.me/${telefonoTienda}?text=${encodeURIComponent(mensaje)}`
+    // 🔴 CAMBIO IMPORTANTE:
+    // Usamos api.whatsapp.com en lugar de wa.me para que funcione en PC
+    const url = `https://api.whatsapp.com/send?phone=${telefonoTienda}&text=${encodeURIComponent(mensaje)}`
     
     // Abrimos en una nueva pestaña
     window.open(url, '_blank')
     
-    // Actualizamos el estado en la base de datos (opcional, no bloquea el flujo si falla)
+    // Actualizamos el estado en la base de datos
     try {
         await supabase.from('pedidos').update({ enviado_whatsapp: true }).eq('id', id)
     } catch (err) {
