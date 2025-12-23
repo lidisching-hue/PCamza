@@ -15,13 +15,29 @@ function Checkout() {
   const [direccion, setDireccion] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // Protección: Si no hay items, volver al inicio
+  // 1. Protección: Si no hay items, volver al inicio
   useEffect(() => {
     if (items.length === 0) {
-       // navigate('/') // Descomenta esto si quieres que los saque de la pantalla
+       // navigate('/') // Opcional: Descomenta si quieres forzar la salida
     }
   }, [items])
 
+  // 2. Auto-rellenar nombre si hay usuario logueado
+  useEffect(() => {
+    const checkUser = async () => {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+            // Intentamos sacar el nombre de Google o metadatos
+            const nombreGuardado = user.user_metadata?.full_name || user.user_metadata?.name || ''
+            if (nombreGuardado) {
+                setNombre(nombreGuardado)
+            }
+        }
+    }
+    checkUser()
+  }, [])
+
+  // Calculamos el total
   const total = items.reduce((acc, item) => {
     const precio = item.ofertaactiva && item.preciooferta ? item.preciooferta : item.precio
     return acc + precio * item.cantidad
@@ -40,7 +56,6 @@ function Checkout() {
     items.forEach(item => {
       const precio = item.ofertaactiva && item.preciooferta ? item.preciooferta : item.precio
       const subtotal = (precio * item.cantidad).toFixed(2)
-      // Usamos guion para evitar caracteres raros
       mensaje += `- (${item.cantidad}) ${item.nombre} : S/ ${subtotal}\n`
     })
     
@@ -58,10 +73,10 @@ function Checkout() {
     setLoading(true)
     
     try {
-      // 1. Usuario
+      // 1. Usuario (Para asociar el ID del pedido)
       const { data } = await supabase.auth.getUser()
       
-      // 2. Guardar en BD
+      // 2. Guardar en BD (Si data.user existe, se guarda su ID, si no, null)
       const idPedido = await crearPedido(data?.user?.id || null, items, { 
         nombre, 
         telefono, 
@@ -111,17 +126,33 @@ function Checkout() {
             
             <div className="group">
               <label className="text-[11px] font-bold text-gray-400 ml-1 uppercase">Nombre *</label>
-              <input value={nombre} onChange={e => setNombre(e.target.value)} placeholder="Juan Pérez" className="w-full border-b-2 border-gray-100 p-3 outline-none focus:border-black font-medium" />
+              <input 
+                value={nombre} 
+                onChange={(e) => setNombre(e.target.value)} 
+                placeholder="Juan Pérez" 
+                className="w-full border-b-2 border-gray-100 p-3 outline-none focus:border-black font-medium" 
+              />
             </div>
 
             <div className="group">
               <label className="text-[11px] font-bold text-gray-400 ml-1 uppercase">Celular *</label>
-              <input value={telefono} onChange={e => setTelefono(e.target.value)} placeholder="987 654 321" type="tel" className="w-full border-b-2 border-gray-100 p-3 outline-none focus:border-black font-medium" />
+              <input 
+                value={telefono} 
+                onChange={(e) => setTelefono(e.target.value)} 
+                placeholder="987 654 321" 
+                type="tel" 
+                className="w-full border-b-2 border-gray-100 p-3 outline-none focus:border-black font-medium" 
+              />
             </div>
 
             <div className="group">
               <label className="text-[11px] font-bold text-gray-400 ml-1 uppercase">Dirección</label>
-              <textarea value={direccion} onChange={e => setDireccion(e.target.value)} placeholder="Referencia..." className="w-full border-b-2 border-gray-100 p-3 outline-none focus:border-black font-medium h-20 resize-none" />
+              <textarea 
+                value={direccion} 
+                onChange={(e) => setDireccion(e.target.value)} 
+                placeholder="Referencia..." 
+                className="w-full border-b-2 border-gray-100 p-3 outline-none focus:border-black font-medium h-20 resize-none" 
+              />
             </div>
           </div>
 
@@ -148,7 +179,7 @@ function Checkout() {
           <button
             onClick={handleFinalizarCompra}
             disabled={loading || items.length === 0}
-            className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-bold text-sm shadow-xl hover:bg-[#20bd5a] flex items-center justify-center gap-2"
+            className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-bold text-sm shadow-xl hover:bg-[#20bd5a] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? 'Procesando...' : 'Confirmar y Enviar a WhatsApp'}
           </button>

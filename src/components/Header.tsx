@@ -1,6 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useCart } from '../hooks/useCart'
 import { Link, useLocation } from 'react-router-dom'
+import { supabase } from '../lib/supabase' // 👈 Importamos Supabase
+import type { User } from '@supabase/supabase-js' // 👈 Importamos el tipo User
 
 function Header() {
   const { items } = useCart()
@@ -8,6 +10,23 @@ function Header() {
   const [isSearchOpen, setIsSearchOpen] = useState(false)
   const location = useLocation()
   const totalItems = items.reduce((acc, item) => acc + item.cantidad, 0)
+
+  // --- LÓGICA DE USUARIO (Igual que hicimos antes) ---
+  const [usuario, setUsuario] = useState<User | null>(null)
+
+  useEffect(() => {
+    // 1. Ver usuario actual al cargar
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setUsuario(session?.user ?? null)
+    })
+
+    // 2. Escuchar cambios (login/logout)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUsuario(session?.user ?? null)
+    })
+
+    return () => subscription.unsubscribe()
+  }, [])
 
   return (
     <>
@@ -26,10 +45,10 @@ function Header() {
             </div>
           </div>
 
-          {/* Redes Sociales con Iconos Reales */}
+          {/* Redes Sociales + USUARIO */}
           <div className="flex items-center gap-5">
             <span className="text-gray-400 text-xs uppercase tracking-widest hidden sm:inline">Síguenos</span>
-            <div className="flex gap-4">
+            <div className="flex items-center gap-4">
               
               {/* Facebook Icon */}
               <a
@@ -57,6 +76,16 @@ function Header() {
                 </svg>
               </a>
 
+              {/* 👈 AQUÍ AGREGAMOS EL NOMBRE DEL USUARIO LOGUEADO */}
+              {usuario && (
+                <div className="flex items-center gap-1 pl-4 border-l border-white/20 ml-1 animate-in fade-in duration-500">
+                    <span className="text-[10px] text-gray-400 hidden sm:inline">Hola,</span>
+                    <span className="text-xs font-bold text-white uppercase tracking-wide">
+                        {usuario.user_metadata?.full_name}
+                    </span>
+                </div>
+              )}
+
             </div>
           </div>
         </div>
@@ -64,7 +93,7 @@ function Header() {
 
       {/* 2. HEADER PRINCIPAL - DEGRADADO ROJO A AZUL */}
       <header className="bg-gradient-to-r from-[#ce1126] via-[#9e0e28] to-[#003366] shadow-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4"> {/* Aumenté el padding vertical py-4 */}
+        <div className="max-w-7xl mx-auto px-4 py-4"> 
           <div className="flex items-center justify-between">
             
             {/* Botón menú móvil (Icono SVG) */}
@@ -78,9 +107,9 @@ function Header() {
                </svg>
             </button>
 
-            {/* LOGO + NOMBRE (Aumentado de tamaño) */}
+            {/* LOGO + NOMBRE */}
             <Link to="/" className="flex items-center gap-4 group">
-              {/* Contenedor del Logo - MÁS GRANDE */}
+              {/* Contenedor del Logo */}
               <div className="bg-white p-1.5 rounded-xl shadow-lg border-2 border-white/30 overflow-hidden transform group-hover:scale-105 transition-transform duration-300">
                 <img 
                     src="https://i.postimg.cc/Rh0CgnHt/PCAMZALOGO.jpg" 
@@ -184,7 +213,7 @@ function Header() {
           <div className="relative bg-white w-80 h-full overflow-y-auto shadow-2xl flex flex-col animate-slide-in-left">
             <div className="p-6 bg-gradient-to-r from-red-700 to-blue-900 flex justify-between items-center text-white shadow-md">
               <span className="text-xl font-bold flex items-center gap-2">
-                 MENÚ
+                  MENÚ
               </span>
               <button
                 onClick={() => setIsMenuOpen(false)}
