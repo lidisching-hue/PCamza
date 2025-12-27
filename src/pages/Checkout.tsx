@@ -29,8 +29,11 @@ function Checkout() {
 
   // Calculamos el total
   const total = items.reduce((acc, item) => {
-    const precio = item.ofertaactiva && item.preciooferta ? item.preciooferta : item.precio
-    return acc + precio * item.cantidad
+    // Si es oferta, usamos precio_oferta (o preciooferta según tu base anterior)
+    // Si usaste mi SQL nuevo, la propiedad suele ser 'precio_oferta'. 
+    // Aquí hacemos un chequeo seguro:
+    const precio = item.precio_oferta || item.preciooferta || item.precio || 0
+    return acc + (precio * item.cantidad)
   }, 0)
 
   // --- GENERAR MENSAJE ---
@@ -42,17 +45,29 @@ function Checkout() {
     if (direccion) mensaje += `🏠 *Dirección:* ${direccion}\n`
     
     mensaje += `\n🛒 *DETALLE DEL PEDIDO*\n`
+    
     items.forEach(item => {
-      const precio = item.ofertaactiva && item.preciooferta ? item.preciooferta : item.precio
+      const precio = item.precio_oferta || item.preciooferta || item.precio || 0
       const subtotal = (precio * item.cantidad).toFixed(2)
       
-      if (item.esCombo && item.contenido) {
+      // DETECTAR SI ES PACK (Combo)
+      // Buscamos si tiene 'oferta_productos' (nuevo) o 'contenido' (viejo)
+      const packItems = item.oferta_productos || item.contenido
+
+      if (packItems && Array.isArray(packItems) && packItems.length > 0) {
+        // ES UN PACK
         mensaje += `\n🎁 *${item.nombre}* (x${item.cantidad})\n`
-        item.contenido.forEach(c => {
-          mensaje += `   └─ _${c.cantidad}x ${c.nombre}_\n`
+        
+        packItems.forEach((subItem: any) => {
+          // Adaptador: En la nueva DB el nombre está dentro de 'producto.nombre'
+          const nombreSub = subItem.producto?.nombre || subItem.nombre || 'Producto'
+          const cantSub = subItem.cantidad
+          
+          mensaje += `   └─ _${cantSub}x ${nombreSub}_\n`
         })
         mensaje += `   *Subtotal:* S/ ${subtotal}\n`
       } else {
+        // ES PRODUCTO INDIVIDUAL
         mensaje += `✅ (${item.cantidad}) ${item.nombre} : S/ ${subtotal}\n`
       }
     })
@@ -151,7 +166,11 @@ function Checkout() {
 
              <div className="space-y-4">
               {items.map(item => {
-                const precio = item.ofertaactiva && item.preciooferta ? item.preciooferta : item.precio;
+                const precio = item.precio_oferta || item.preciooferta || item.precio || 0
+                // Detectamos si es pack para el renderizado visual
+                const packItems = item.oferta_productos || item.contenido
+                const esPack = packItems && Array.isArray(packItems) && packItems.length > 0
+
                 return (
                   <div key={item.id} className="flex flex-col">
                     <div className="flex justify-between items-start">
@@ -163,13 +182,18 @@ function Checkout() {
                       </span>
                     </div>
 
-                    {item.esCombo && item.contenido && (
+                    {/* Renderizado condicional de items del pack */}
+                    {esPack && (
                       <div className="mt-1.5 ml-2 border-l-2 border-red-200 pl-3 space-y-0.5">
-                        {item.contenido.map((c, i) => (
-                          <p key={i} className="text-[10px] text-gray-500 font-medium">
-                            • {c.cantidad}x {c.nombre}
-                          </p>
-                        ))}
+                        {packItems.map((c: any, i: number) => {
+                             // Adaptador visual
+                             const subNombre = c.producto?.nombre || c.nombre || 'Item'
+                             return (
+                                <p key={i} className="text-[10px] text-gray-500 font-medium">
+                                  • {c.cantidad}x {subNombre}
+                                </p>
+                             )
+                        })}
                       </div>
                     )}
                   </div>

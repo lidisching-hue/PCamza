@@ -1,3 +1,4 @@
+// src/types/Producto.ts
 export interface Producto {
   id: string
   nombre: string
@@ -5,9 +6,14 @@ export interface Producto {
   precio: number
   imagen_url: string | null
   activo: boolean
-  preciooferta: number | null
-  ofertaactiva: boolean
-  // Estas son las claves para que los Combos no den error
+  
+  // Soporte para ambos nombres (viejo y nuevo)
+  preciooferta?: number | null
+  precio_oferta?: number | null  // <--- Nuevo
+  ofertaactiva?: boolean
+
+  // Propiedades de Combo
   esCombo?: boolean
-  contenido?: { nombre: string; cantidad: number }[]
+  contenido?: any[]       // Legacy
+  oferta_productos?: any[] // Nuevo
 }

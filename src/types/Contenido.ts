@@ -1,73 +1,44 @@
+// types/contenido.ts
+
+// --- SECCIÓN INICIO ---
 export interface ContenidoInicio {
   id: number
   created_at: string
-  seccion: 'banner' | 'oferta' | 'video' // Solo permitimos estos valores exactos
+  seccion: 'banner' | 'oferta' | 'video'
   url: string
   orden: number
   titulo?: string
   activo: boolean
 }
 
+// --- SECCIÓN NOSOTROS ---
 export interface ContenidoNosotros {
   id: number
-  seccion: string // 'banner' | 'contenido'
+  seccion: string
   url: string
   orden: number
   titulo?: string
 }
 
-// Interfaces para la sección de Tiendas
+// --- SECCIÓN TIENDAS ---
 export interface ContenidoTiendaBanner {
   url: string
 }
 
 export interface Tienda {
   id: number
-  ciudad: string // Ej: 'piura', 'lima'
+  ciudad: string
   nombre: string
   direccion: string
   horario: string
   telefono: string
-  map_src: string // Nombre exacto de la columna en Supabase
+  map_src: string
   orden: number
 }
-// ... (manten lo anterior y agrega esto al final)
 
+// --- CONTACTO ---
 export interface AjusteContacto {
   id: number
   clave: string
   valor: string
-}
-// Asegúrate de que el nombre del archivo sea Contenido.ts (con C mayúscula)
-
-export interface ProductoEnCombo {
-  cantidad: number;
-  productos: {
-    nombre: string;
-    precio: number;
-    imagen_url: string;
-  };
-}
-
-export interface OfertaCombo {
-  id: number;
-  nombre: string;
-  descripcion: string;
-  imagen_url: string;
-  precio_calculado: number;
-  precio_oferta: number;
-  activo: boolean;
-  fecha_vencimiento: string; 
-  oferta_productos: ProductoEnCombo[];
-}
-
-// ... Tus otras interfaces (Tienda, ContenidoInicio, etc.)
-export interface ContenidoInicio {
-  id: number;
-  created_at: string;
-  seccion: 'banner' | 'oferta' | 'video';
-  url: string;
-  orden: number;
-  titulo?: string;
-  activo: boolean;
 }

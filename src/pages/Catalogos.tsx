@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
-import type { OfertaCombo } from '../types/Contenido'
+// 1. Importamos el tipo correcto
+import type { Oferta } from '../types/Oferta'
+
 import { useCart } from '../hooks/useCart'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
@@ -9,7 +11,7 @@ import QRCanal from '../components/qrcanal'
 import { obtenerOfertasCombos } from '../services/contenido.service'
 
 function Catalogos() {
-  const [combos, setCombos] = useState<OfertaCombo[]>([])
+  const [combos, setCombos] = useState<Oferta[]>([])
   const { addToCart } = useCart()
   
   const [tiempo, setTiempo] = useState({ horas: 12, minutos: 0, segundos: 0 })
@@ -20,6 +22,7 @@ function Catalogos() {
         const data = await obtenerOfertasCombos()
         setCombos(data)
         
+        // Lógica del contador
         if (data.length > 0 && data[0].fecha_vencimiento) {
            const fin = new Date(data[0].fecha_vencimiento).getTime()
            const ahora = new Date().getTime()
@@ -56,17 +59,32 @@ function Catalogos() {
     return Math.round(((normal - oferta) / normal) * 100)
   }
 
-  const manejarAgregarCombo = (combo: OfertaCombo) => {
+  // Función auxiliar para calcular el precio real del pack sumando sus items
+  const obtenerPrecioReal = (combo: Oferta) => {
+    const sumaProductos = combo.oferta_productos?.reduce((acc, item) => {
+      return acc + ((item.producto?.precio || 0) * item.cantidad)
+    }, 0) || 0
+    
+    // Si la suma es 0 (por error de datos), asumimos un 20% más que la oferta
+    return sumaProductos > 0 ? sumaProductos : (combo.precio_oferta * 1.2)
+  }
+
+  const manejarAgregarCombo = (combo: Oferta) => {
+    const precioRealCalculado = obtenerPrecioReal(combo)
+
     const productoParaCarrito: any = {
       id: `combo-${combo.id}`,
       nombre: combo.nombre,
-      precio: combo.precio_calculado,
+      // AQUI CORREGIMOS EL ERROR: Usamos el cálculo dinámico
+      precio: precioRealCalculado, 
+      precio_oferta: combo.precio_oferta, 
       preciooferta: combo.precio_oferta,
       ofertaactiva: true,
       imagen_url: combo.imagen_url,
       esCombo: true,
-      contenido: combo.oferta_productos.map(op => ({
-        nombre: op.productos.nombre,
+      
+      oferta_productos: combo.oferta_productos?.map(op => ({
+        nombre: op.producto?.nombre || 'Producto Desconocido',
         cantidad: op.cantidad
       }))
     }
@@ -78,6 +96,7 @@ function Catalogos() {
       <Header />
 
       <main>
+        {/* SECCIÓN BANNER Y CONTADOR */}
         <section className="relative bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white overflow-hidden">
           <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 2px, transparent 2.5px)', backgroundSize: '20px 20px' }}></div>
           
@@ -132,11 +151,15 @@ function Catalogos() {
           </div>
         </section>
 
+        {/* LISTA DE COMBOS */}
         <section className="max-w-7xl mx-auto px-4 py-12">
           {combos.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {combos.map((combo) => {
-                const porcentajeDescuento = calcularDescuento(combo.precio_calculado, combo.precio_oferta)
+                // CORRECCIÓN CLAVE: Calculamos el precio real sumando los items
+                const precioNormal = obtenerPrecioReal(combo)
+                const porcentajeDescuento = calcularDescuento(precioNormal, combo.precio_oferta)
+                
                 return (
                   <div key={combo.id} className="group relative bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all hover:-translate-y-1 border-2 border-transparent hover:border-red-500">
                     <div className="absolute top-0 right-0 z-20">
@@ -147,6 +170,7 @@ function Catalogos() {
                     <div className="absolute top-3 left-3 z-20">
                         <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">¡COMBO!</span>
                     </div>
+                    
                     <div className="relative h-48 md:h-60 p-4 bg-white flex items-center justify-center overflow-hidden">
                       {combo.imagen_url ? (
                         <img src={combo.imagen_url} alt={combo.nombre} className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" />
@@ -157,18 +181,26 @@ function Catalogos() {
                         </div>
                       )}
                     </div>
+
                     <div className="p-4 bg-gray-50 border-t border-gray-100">
                       <h3 className="text-gray-800 font-semibold text-sm md:text-base line-clamp-1 mb-1 leading-tight">{combo.nombre}</h3>
+                      
                       <p className="text-[10px] text-gray-500 mb-2 line-clamp-2 italic">
-                        Incluye: {combo.oferta_productos?.map(op => `${op.cantidad}x ${op.productos.nombre}`).join(', ')}
+                        Incluye: {combo.oferta_productos?.map(op => `${op.cantidad}x ${op.producto?.nombre}`).join(', ')}
                       </p>
+
                       <div className="flex flex-col mb-3">
-                        <span className="text-gray-400 text-xs line-through decoration-red-500 decoration-1">S/ {combo.precio_calculado.toFixed(2)}</span>
+                        {/* Precio Real (Tachado) */}
+                        <span className="text-gray-400 text-xs line-through decoration-red-500 decoration-1">
+                          S/ {precioNormal.toFixed(2)}
+                        </span>
+                        {/* Precio Oferta */}
                         <div className="flex items-baseline gap-1 text-red-600">
                             <span className="text-sm font-bold">S/</span>
-                            <span className="text-3xl font-black tracking-tighter">{combo.precio_oferta.toFixed(2)}</span>
+                            <span className="text-3xl font-black tracking-tighter">{combo.precio_oferta?.toFixed(2)}</span>
                         </div>
                       </div>
+                      
                       <button onClick={() => manejarAgregarCombo(combo)} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
                         <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
                           <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
@@ -189,6 +221,7 @@ function Catalogos() {
           )}
         </section>
 
+        {/* FOOTER INFORMATIVO */}
         <section className="bg-yellow-400 py-6 mb-12">
             <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-center gap-6 text-center md:text-left">
                 <div className="bg-white p-3 rounded-full shadow-sm text-3xl">🚛</div>

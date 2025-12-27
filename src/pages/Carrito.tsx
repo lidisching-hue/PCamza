@@ -78,6 +78,11 @@ function Carrito() {
           ) : (
             items.map(item => {
               const precioUnitario = item.ofertaactiva && item.preciooferta ? item.preciooferta : item.precio
+              
+              // 1. CORRECCIÓN: Detectamos si es pack buscando ambas propiedades
+              const packItems = item.oferta_productos || item.contenido
+              const esPack = item.esCombo && packItems && Array.isArray(packItems)
+
               return (
                 <div key={item.id} className="flex gap-4 bg-white p-3 rounded-2xl border border-gray-100 shadow-sm hover:border-gray-200 transition-all group">
                   <div className="w-20 h-20 bg-gray-50 rounded-xl overflow-hidden flex-shrink-0 border border-gray-50">
@@ -93,13 +98,14 @@ function Carrito() {
                       <div className="flex-1">
                         <h2 className="font-bold text-gray-800 text-sm leading-tight pr-2">{item.nombre}</h2>
                         
-                        {/* DISEÑO ELEGANTE PARA EL CONTENIDO DEL COMBO */}
-                        {item.esCombo && item.contenido && (
+                        {/* 2. CORRECCIÓN: Renderizamos usando la variable unificada packItems */}
+                        {esPack && (
                           <div className="mt-2 flex flex-wrap gap-1">
-                            {item.contenido.map((prod, idx) => (
+                            {packItems.map((prod: any, idx: number) => (
                               <div key={idx} className="flex items-center bg-red-50 border border-red-100 px-2 py-0.5 rounded shadow-sm">
                                 <span className="text-red-600 font-bold text-[9px] mr-1">{prod.cantidad}x</span>
-                                <span className="text-gray-700 text-[9px] font-medium">{prod.nombre}</span>
+                                {/* Soporte para estructura plana o anidada */}
+                                <span className="text-gray-700 text-[9px] font-medium">{prod.nombre || prod.producto?.nombre}</span>
                               </div>
                             ))}
                           </div>

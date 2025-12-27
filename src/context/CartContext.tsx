@@ -28,29 +28,33 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     localStorage.setItem('cart', JSON.stringify(items))
   }, [items])
 
-const addToCart = (producto: Producto) => {
-  setItems(prev => {
-    const existe = prev.find(item => item.id === producto.id)
+  const addToCart = (producto: Producto) => {
+    setItems(prev => {
+      // 1. Buscamos si el producto ya existe
+      const existe = prev.find(item => item.id === producto.id)
 
-    if (existe) {
-      return prev.map(item =>
-        item.id === producto.id
-          ? { ...item, cantidad: item.cantidad + 1 }
-          : item
-      )
-    }
+      if (existe) {
+        return prev.map(item =>
+          item.id === producto.id
+            ? { ...item, cantidad: item.cantidad + 1 }
+            : item
+        )
+      }
 
-    // Al crear el nuevo item, nos aseguramos de pasar esCombo y contenido
-    const nuevoItem: CartItem = {
-      ...producto,
-      cantidad: 1,
-      esCombo: producto.esCombo || false,
-      contenido: producto.contenido || []
-    }
+      // 2. CORRECCIÓN: Creamos el item asegurando las propiedades nuevas
+      // Usamos (producto as any) si TS se pone estricto, pero con los tipos actualizados no debería ser necesario.
+      const nuevoItem: CartItem = {
+        ...producto,
+        cantidad: 1,
+        esCombo: producto.esCombo || false,
+        // Guardamos AMBOS formatos para evitar errores si usas componentes viejos
+        contenido: producto.contenido || [], 
+        oferta_productos: (producto as any).oferta_productos || [] 
+      }
 
-    return [...prev, nuevoItem]
-  })
-}
+      return [...prev, nuevoItem]
+    })
+  }
 
   const removeFromCart = (id: string) => {
     setItems(prev => prev.filter(item => item.id !== id))

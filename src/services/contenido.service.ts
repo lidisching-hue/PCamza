@@ -1,20 +1,36 @@
 import { supabase } from '../lib/supabase'
-import type { OfertaCombo } from '../types/Contenido'; // Importación corregida
 
-export const obtenerOfertasCombos = async (): Promise<OfertaCombo[]> => {
+// 1. Tipos de las OFERTAS (Nuevo archivo)
+import type { Oferta } from '../types/Oferta'
+
+// 2. Tipos del CONTENIDO (Archivo existente)
+import type { 
+  ContenidoInicio, 
+  ContenidoNosotros, 
+  Tienda 
+} from '../types/Contenido'
+
+
+// ==========================================
+// 1. SERVICIO DE OFERTAS (PACKS)
+// ==========================================
+export const obtenerOfertasCombos = async (): Promise<Oferta[]> => {
   const { data, error } = await supabase
-    .from('ofertas')
+    .from('ofertas') // Tabla nueva
     .select(`
       *,
       oferta_productos (
         cantidad,
-        productos (
+        producto:productos (   
+          id,
           nombre,
           precio,
           imagen_url
         )
       )
     `)
+    // NOTA: "producto:productos" es un alias para que el objeto 
+    // se llame "producto" (singular) y no "productos" (array)
     .eq('activo', true)
     .order('created_at', { ascending: false });
 
@@ -22,16 +38,14 @@ export const obtenerOfertasCombos = async (): Promise<OfertaCombo[]> => {
     console.error("Error al obtener ofertas:", error);
     return [];
   }
-  return data as OfertaCombo[];
+  
+  return data as Oferta[];
 };
-// Importamos TODOS los tipos desde el archivo central
-import type { 
-  ContenidoInicio, 
-  ContenidoNosotros, 
-  Tienda 
-} from '../types/Contenido'
 
-// --- 1. SERVICIO INICIO ---
+
+// ==========================================
+// 2. SERVICIO INICIO (Banners y Videos)
+// ==========================================
 export const obtenerContenidoInicio = async (): Promise<ContenidoInicio[]> => {
   const { data, error } = await supabase
     .from('contenidos_inicio')
@@ -47,7 +61,10 @@ export const obtenerContenidoInicio = async (): Promise<ContenidoInicio[]> => {
   return data as ContenidoInicio[]
 }
 
-// --- 2. SERVICIO NOSOTROS ---
+
+// ==========================================
+// 3. SERVICIO NOSOTROS
+// ==========================================
 export const obtenerContenidoNosotros = async (): Promise<ContenidoNosotros[]> => {
   const { data, error } = await supabase
     .from('contenido_nosotros')
@@ -62,7 +79,10 @@ export const obtenerContenidoNosotros = async (): Promise<ContenidoNosotros[]> =
   return data as ContenidoNosotros[]
 }
 
-// --- 3. SERVICIOS TIENDAS ---
+
+// ==========================================
+// 4. SERVICIOS TIENDAS
+// ==========================================
 
 // Obtener el banner de la página tiendas
 export const obtenerBannerTiendas = async (): Promise<string> => {
@@ -93,9 +113,10 @@ export const obtenerTiendas = async (): Promise<Tienda[]> => {
   return data as Tienda[]
 }
 
-// ... (manten los imports y servicios anteriores)
 
-// --- 4. SERVICIOS CONTACTO ---
+// ==========================================
+// 5. SERVICIOS CONTACTO
+// ==========================================
 
 export const obtenerBannerContacto = async (): Promise<string> => {
   const { data, error } = await supabase
