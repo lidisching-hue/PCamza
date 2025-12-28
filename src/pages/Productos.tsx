@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom' // 👈 Importamos useSearchParams para leer la URL
-import { supabase } from '../lib/supabase' // Usamos supabase directo para asegurar filtros
+import { useEffect, useState, useMemo } from 'react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { supabase } from '../lib/supabase'
 import type { Producto } from '../types/Producto'
 import ProductCard from '../components/ProductCard'
 import Header from '../components/Header'
@@ -10,8 +10,9 @@ import QRCanal from '../components/qrcanal'
 function Productos() {
   const [productos, setProductos] = useState<Producto[]>([])
   const [loading, setLoading] = useState(true)
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('Todas')
 
-  // 1. OBTENER PARAMETROS DE BÚSQUEDA (?search=...)
+  // 1. OBTENER PARAMETROS DE BÚSQUEDA
   const [searchParams] = useSearchParams()
   const searchQuery = searchParams.get('search') || '' 
 
@@ -21,7 +22,6 @@ function Productos() {
 
   const fetchProductos = async () => {
     setLoading(true)
-    // Traemos todo el inventario activo
     const { data } = await supabase
       .from('productos')
       .select('*')
@@ -32,26 +32,41 @@ function Productos() {
     setLoading(false)
   }
 
-  // 2. LÓGICA DE FILTRADO INTELIGENTE
+  // 2. EXTRAER CATEGORÍAS ÚNICAS AUTOMÁTICAMENTE
+  // Esto revisa todos tus productos y crea una lista limpia de categorías disponibles
+  const categorias = useMemo(() => {
+    const cats = new Set(productos.map(p => p.categoria).filter(Boolean))
+    return ['Todas', ...Array.from(cats)].sort()
+  }, [productos])
+
+  // 3. LÓGICA DE FILTRADO (Busqueda + Categoría)
   const productosFiltrados = productos.filter(producto => {
-    if (!searchQuery) return true // Si no hay búsqueda, mostramos todo
+    // A. Filtro por Categoría
+    const coincideCategoria = 
+        categoriaSeleccionada === 'Todas' || 
+        producto.categoria === categoriaSeleccionada
+
+    if (!coincideCategoria) return false
+
+    // B. Filtro por Buscador (Texto)
+    if (!searchQuery) return true 
 
     const termino = searchQuery.toLowerCase()
     const precioStr = producto.precio.toString()
-    const precioOfertaStr = producto.preciooferta?.toString() || ''
+    
+    const nombre = producto.nombre?.toLowerCase() || ''
+    const descripcion = producto.descripcion?.toLowerCase() || ''
+    const marca = producto.marca?.toLowerCase() || ''
+    const categoria = producto.categoria?.toLowerCase() || ''
+    const presentacion = producto.presentacion?.toLowerCase() || ''
 
     return (
-      // A. Buscar por Nombre
-      producto.nombre.toLowerCase().includes(termino) ||
-      
-      // B. Buscar por Descripción
-      (producto.descripcion && producto.descripcion.toLowerCase().includes(termino)) ||
-      
-      // C. Buscar por Precio
+      nombre.includes(termino) ||
+      descripcion.includes(termino) ||
+      marca.includes(termino) ||
+      categoria.includes(termino) ||
+      presentacion.includes(termino) ||
       precioStr.includes(termino) ||
-      precioOfertaStr.includes(termino) ||
-
-      // D. Buscar palabra "oferta"
       (termino === 'oferta' && producto.ofertaactiva)
     )
   })
@@ -60,76 +75,105 @@ function Productos() {
     <div className="min-h-screen bg-gray-50 font-sans">
       <Header />
 
-      {/* --- SECCIÓN PRODUCTOS --- */}
-      <section className="bg-white py-12 min-h-[500px]">
+      {/* --- SECCIÓN PRINCIPAL CON LAYOUT DE 2 COLUMNAS --- */}
+      <section className="bg-white py-8 min-h-[600px]">
         <div className="max-w-7xl mx-auto px-4">
           
-          {/* HEADER DE LA SECCIÓN */}
-          <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4 border-b border-gray-100 pb-6">
+          {/* HEADER DE LA PÁGINA */}
+          <div className="flex flex-col md:flex-row justify-between items-end mb-8 border-b border-gray-100 pb-6 gap-4">
             <div>
-                {/* 3. TÍTULO DINÁMICO SEGÚN BÚSQUEDA */}
-                {searchQuery ? (
-                    <>
-                        <h2 className="text-3xl font-bold text-gray-800">
-                           Resultados para: <span className="text-red-600">"{searchQuery}"</span>
-                        </h2>
-                        <p className="text-gray-500 mt-2">Encontramos {productosFiltrados.length} coincidencias</p>
-                    </>
+               <h2 className="text-3xl font-bold text-gray-800">Nuestros Productos</h2>
+               {searchQuery && (
+                 <p className="text-sm text-red-600 font-medium mt-1">
+                   Resultados para "{searchQuery}"
+                 </p>
+               )}
+            </div>
+            
+            <Link
+                to="/catalogos"
+                className="hidden md:flex px-6 py-2.5 border border-gray-200 text-gray-700 rounded-full font-semibold text-sm hover:bg-gray-50 hover:border-red-200 transition-colors items-center gap-2"
+              >
+                <span>Ver Catálogo de Ofertas</span>
+                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+            </Link>
+          </div>
+
+          <div className="flex flex-col lg:flex-row gap-8">
+            
+            {/* --- COLUMNA IZQUIERDA: MENÚ DE CATEGORÍAS --- */}
+            {/* En móvil se ve como scroll horizontal, en PC como barra lateral */}
+            <aside className="w-full lg:w-64 flex-shrink-0">
+                <div className="sticky top-24">
+                    <h3 className="font-bold text-gray-900 mb-4 px-1 hidden lg:block">Categorías</h3>
+                    
+                    {/* Contenedor Scrollable para Móviles / Lista Vertical para PC */}
+                    <div className="flex lg:flex-col overflow-x-auto lg:overflow-visible gap-2 pb-4 lg:pb-0 no-scrollbar">
+                        {categorias.map((cat: any) => (
+                            <button
+                                key={cat}
+                                onClick={() => setCategoriaSeleccionada(cat)}
+                                className={`
+                                    whitespace-nowrap px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left flex justify-between items-center group
+                                    ${categoriaSeleccionada === cat 
+                                        ? 'bg-red-600 text-white shadow-md shadow-red-200' 
+                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
+                                `}
+                            >
+                                <span>{cat}</span>
+                                {/* Contador de productos (Opcional) */}
+                                {cat !== 'Todas' && (
+                                    <span className={`text-[10px] ml-2 px-2 py-0.5 rounded-full ${categoriaSeleccionada === cat ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'}`}>
+                                        {productos.filter(p => p.categoria === cat).length}
+                                    </span>
+                                )}
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            </aside>
+
+            {/* --- COLUMNA DERECHA: GRID DE PRODUCTOS --- */}
+            <div className="flex-1">
+                
+                {/* Header pequeño de la grilla */}
+                <div className="flex justify-between items-center mb-6">
+                    <span className="text-gray-500 text-sm">Mostrando <strong>{productosFiltrados.length}</strong> productos</span>
+                    {/* Aquí podrías poner un ordenar por precio en el futuro */}
+                </div>
+
+                {loading ? (
+                    <div className="flex justify-center py-20">
+                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+                    </div>
                 ) : (
                     <>
-                        <h2 className="text-3xl font-bold text-gray-800">Nuestros Productos</h2>
-                        <p className="text-gray-500 mt-2">Encuentra todo lo que necesitas al mejor precio</p>
+                        {productosFiltrados.length > 0 ? (
+                             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-6">
+                                {productosFiltrados.map((producto) => (
+                                    <ProductCard key={producto.id} producto={producto} />
+                                ))}
+                             </div>
+                        ) : (
+                            <div className="text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                <div className="text-4xl mb-3">🔍</div>
+                                <h3 className="text-gray-900 font-bold">No se encontraron productos</h3>
+                                <p className="text-gray-500 text-sm mt-1">
+                                    No hay resultados en la categoría <span className="font-bold text-red-500">"{categoriaSeleccionada}"</span> con tu búsqueda.
+                                </p>
+                                <button 
+                                    onClick={() => {setCategoriaSeleccionada('Todas'); window.history.replaceState(null, '', '/productos')}}
+                                    className="mt-4 text-red-600 text-sm font-bold hover:underline"
+                                >
+                                    Limpiar filtros
+                                </button>
+                            </div>
+                        )}
                     </>
                 )}
             </div>
-            
-            <div className="flex gap-3">
-              <Link
-                to="/catalogos"
-                className="px-6 py-2.5 border-2 border-red-600 text-red-600 rounded-full font-semibold text-sm hover:bg-red-50 transition-colors flex items-center gap-2"
-              >
-                <span>Ver Catálogo Digital</span>
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
-                </svg>
-              </Link>
-            </div>
+
           </div>
-
-          {/* ESTADO DE CARGA */}
-          {loading && (
-             <div className="flex justify-center py-20">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
-             </div>
-          )}
-
-          {/* GRID DE PRODUCTOS (Filtrados) */}
-          {!loading && (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {productosFiltrados.map((producto) => (
-                  <ProductCard key={producto.id} producto={producto} />
-                ))}
-              </div>
-          )}
-
-          {/* MENSAJE DE VACÍO O SIN RESULTADOS */}
-          {!loading && productosFiltrados.length === 0 && (
-            <div className="text-center py-20 bg-gray-50 rounded-xl mt-4 border border-gray-100">
-              <div className="text-6xl mb-4">🔍</div>
-              <h3 className="text-xl font-bold text-gray-700">No encontramos resultados</h3>
-              <p className="text-gray-500 mt-2">Intenta buscar con otras palabras o revisa la ortografía.</p>
-              
-              {searchQuery && (
-                  <button 
-                    onClick={() => window.location.href='/productos'} 
-                    className="mt-6 text-red-600 font-bold hover:underline"
-                  >
-                    Ver todos los productos
-                  </button>
-              )}
-            </div>
-          )}
-
         </div>
       </section>
       

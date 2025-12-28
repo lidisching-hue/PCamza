@@ -16,4 +16,8 @@ export interface Producto {
   esCombo?: boolean
   contenido?: any[]       // Legacy
   oferta_productos?: any[] // Nuevo
+   // nuevos campos para categrias 
+  marca?: string
+  presentacion?: string
+  categoria?: string
 }
