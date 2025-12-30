@@ -3,42 +3,42 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import QRCanal from '../components/qrcanal'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import type { ContenidoNosotros } from '../types/Contenido'
-import { obtenerContenidoNosotros } from '../services/contenido.service'
+import { supabase } from '../lib/supabase'
 
-// Importamos el servicio y el tipo desde tu archivo de servicios
-// Ajusta la ruta '../services/contenido' según donde guardaste el archivo anterior
+// 1. Definimos la interfaz aquí mismo para evitar errores de importación
+interface DataNosotros {
+  id: number
+  seccion: string
+  subseccion: string | null
+  tipo: string | null
+  titulo: string | null
+  contenido: string | null
+  imagen_url: string | null
+  orden: number
+}
 
 function QuienesSomos() {
   // --- ESTADOS ---
-  const [bannerUrl, setBannerUrl] = useState<string>('')
-  // Ahora el estado usa el tipo correcto 'ContenidoNosotros'
-  const [contentImages, setContentImages] = useState<ContenidoNosotros[]>([])
-  const [currentSlide, setCurrentSlide] = useState<number>(0)
+  const [data, setData] = useState<DataNosotros[]>([])
   const [loading, setLoading] = useState<boolean>(true)
+  const [currentSlide, setCurrentSlide] = useState<number>(0)
 
-  // --- EFECTO: CARGAR DATOS USANDO EL SERVICIO ---
+  // --- EFECTO: CARGAR DATOS DESDE SUPABASE ---
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
-        
-        // Llamamos al servicio (ya no a Supabase directo)
-        const data = await obtenerContenidoNosotros()
+        // Pedimos TODO el contenido de la tabla contenido_nosotros
+        const { data: result, error } = await supabase
+          .from('contenido_nosotros')
+          .select('*')
+          .order('orden', { ascending: true })
 
-        if (data.length > 0) {
-          // 1. Filtrar Banner (buscamos por seccion = 'banner')
-          const banner = data.find(item => item.seccion === 'banner')
-          if (banner) setBannerUrl(banner.url)
-
-          // 2. Filtrar Imágenes Carrusel (buscamos por seccion = 'contenido')
-          // El servicio ya las trae ordenadas, pero por seguridad filtramos
-          const content = data.filter(item => item.seccion === 'contenido')
-          setContentImages(content)
-        }
+        if (error) throw error
+        if (result) setData(result)
 
       } catch (error) {
-        console.error('Error en la vista QuienesSomos:', error)
+        console.error('Error cargando Quiénes Somos:', error)
       } finally {
         setLoading(false)
       }
@@ -47,17 +47,44 @@ function QuienesSomos() {
     fetchData()
   }, [])
 
+  // --- HELPERS PARA FILTRAR EL CONTENIDO ---
+  // Estos atajos nos ayudan a buscar datos específicos en el array 'data'
+  const getSection = (seccion: string) => data.filter(item => item.seccion === seccion)
+  const getOne = (seccion: string, subseccion: string) => data.find(item => item.seccion === seccion && item.subseccion === subseccion)
+
+  // Datos procesados para uso fácil en el render:
+  const portada = getOne('portada', 'banner_principal')
+  const historiaTitulo = getOne('historia', 'titulo_principal')
+  const historiaParrafos = getSection('historia').filter(item => item.tipo === 'parrafo')
+  const carrusel = getSection('carrusel_historia') // Array de imágenes
+  const mision = getOne('mision_vision', 'mision')
+  const vision = getOne('mision_vision', 'vision')
+  const valores = getSection('valores')
+
   // --- FUNCIONES DEL CARRUSEL ---
   const prevSlide = () => {
+    if (carrusel.length === 0) return
     const isFirstSlide = currentSlide === 0
-    const newIndex = isFirstSlide ? contentImages.length - 1 : currentSlide - 1
+    const newIndex = isFirstSlide ? carrusel.length - 1 : currentSlide - 1
     setCurrentSlide(newIndex)
   }
 
   const nextSlide = () => {
-    const isLastSlide = currentSlide === contentImages.length - 1
+    if (carrusel.length === 0) return
+    const isLastSlide = currentSlide === carrusel.length - 1
     const newIndex = isLastSlide ? 0 : currentSlide + 1
     setCurrentSlide(newIndex)
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-pulse flex flex-col items-center">
+          <div className="h-12 w-12 bg-gray-300 rounded-full mb-4"></div>
+          <p className="text-gray-400 font-medium">Cargando nuestra historia...</p>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -65,66 +92,56 @@ function QuienesSomos() {
       <Header />
 
       <main className="flex-grow">
-        {/* --- PORTADA / BANNER SUPERIOR --- */}
+        
+        {/* --- 1. PORTADA / BANNER SUPERIOR --- */}
         <section className="relative bg-[#d32f2f] text-white py-20">
-          <div className="absolute inset-0 overflow-hidden opacity-20">
-            <img 
-              src={bannerUrl || "https://img.freepik.com/foto-gratis/pasillo-supermercado-borroso_23-2148143415.jpg"} 
-              alt="Fondo Supermercado" 
-              className="w-full h-full object-cover transition-opacity duration-500"
-            />
+          <div className="absolute inset-0 overflow-hidden opacity-30">
+            {portada?.imagen_url && (
+              <img 
+                src={portada.imagen_url} 
+                alt="Banner Quiénes Somos" 
+                className="w-full h-full object-cover transition-opacity duration-500"
+              />
+            )}
           </div>
           <div className="relative max-w-7xl mx-auto px-4 text-center">
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight">
-              Quiénes Somos
+            <h1 className="text-4xl md:text-5xl font-extrabold mb-4 tracking-tight drop-shadow-lg">
+              {portada?.titulo || 'Quiénes Somos'}
             </h1>
-            <p className="text-lg md:text-xl font-light opacity-90 max-w-2xl mx-auto">
-              Comprometidos con el ahorro y bienestar de las familias peruanas.
+            <p className="text-lg md:text-xl font-light opacity-95 max-w-2xl mx-auto drop-shadow-md">
+              {portada?.contenido || 'Cargando descripción...'}
             </p>
           </div>
         </section>
 
-        {/* --- HISTORIA / INTRODUCCIÓN --- */}
+        {/* --- 2. HISTORIA / INTRODUCCIÓN --- */}
         <section className="py-16 px-4 max-w-7xl mx-auto">
           <div className="flex flex-col md:flex-row items-center gap-12">
             
-            {/* --- ZONA DE IMAGEN / CARRUSEL --- */}
-            <div className="md:w-1/2 relative group">
-              {loading ? (
-                // SKELETON LOADING
-                <div className="w-full h-[400px] bg-gray-200 rounded-3xl animate-pulse flex items-center justify-center">
-                   <span className="text-gray-400">Cargando...</span>
-                </div>
-              ) : contentImages.length > 0 ? (
-                // HAY IMÁGENES
-                <div className="relative w-full h-[400px] rounded-3xl overflow-hidden shadow-xl bg-gray-100">
-                  
-                  {/* Imagen Actual (usamos .url en lugar de .image_url) */}
+            {/* ZONA DE CARRUSEL DE IMÁGENES */}
+            <div className="md:w-1/2 relative group w-full">
+              {carrusel.length > 0 ? (
+                <div className="relative w-full h-[300px] md:h-[400px] rounded-3xl overflow-hidden shadow-xl bg-gray-100">
+                  {/* Imagen Actual */}
                   <img 
-                    src={contentImages[currentSlide].url} 
-                    alt={contentImages[currentSlide].titulo || "Historia Tienda"} 
+                    src={carrusel[currentSlide]?.imagen_url || ''} 
+                    alt="Historia Slide" 
                     className="w-full h-full object-cover duration-500 ease-in-out"
                   />
 
-                  {/* CONTROLES (Solo si hay > 1 imagen) */}
-                  {contentImages.length > 1 && (
+                  {/* Flechas (Solo si hay más de 1 imagen) */}
+                  {carrusel.length > 1 && (
                     <>
-                      <button 
-                        onClick={prevSlide}
-                        className="absolute top-1/2 left-4 -translate-y-1/2 bg-black/30 hover:bg-red-600 text-white p-2 rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
-                      >
+                      <button onClick={prevSlide} className="absolute top-1/2 left-4 -translate-y-1/2 bg-black/30 hover:bg-red-600 text-white p-2 rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100">
                         <ChevronLeft size={24} />
                       </button>
-
-                      <button 
-                        onClick={nextSlide}
-                        className="absolute top-1/2 right-4 -translate-y-1/2 bg-black/30 hover:bg-red-600 text-white p-2 rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100"
-                      >
+                      <button onClick={nextSlide} className="absolute top-1/2 right-4 -translate-y-1/2 bg-black/30 hover:bg-red-600 text-white p-2 rounded-full backdrop-blur-sm transition-all opacity-0 group-hover:opacity-100">
                         <ChevronRight size={24} />
                       </button>
-
+                      
+                      {/* Puntos indicadores */}
                       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                        {contentImages.map((_, index) => (
+                        {carrusel.map((_, index) => (
                           <div 
                             key={index}
                             onClick={() => setCurrentSlide(index)}
@@ -136,52 +153,51 @@ function QuienesSomos() {
                   )}
                 </div>
               ) : (
-                // FALLBACK DEFAULT
-                <img 
-                  src="https://i.postimg.cc/brLgj4dP/tienda-quienes-somos.jpg"
-                  alt="Tienda Default" 
-                  className="rounded-3xl shadow-xl w-full h-auto object-cover"
-                />
+                <div className="w-full h-[400px] bg-gray-200 rounded-3xl flex items-center justify-center text-gray-400">
+                  Sin imágenes
+                </div>
               )}
             </div>
 
-            {/* --- TEXTO DE HISTORIA --- */}
+            {/* TEXTO DE HISTORIA */}
             <div className="md:w-1/2 text-gray-700 space-y-6">
               <h2 className="text-3xl font-bold text-gray-800 border-b-4 border-red-600 inline-block pb-2">
-                Nuestra Historia
+                {historiaTitulo?.titulo || 'Nuestra Historia'}
               </h2>
-              <p className="text-lg leading-relaxed">
-                Somos una cadena de supermercados peruana perteneciente al grupo <strong>PECAMZA</strong>. 
-                Nacimos con el firme propósito de acercar productos de primera necesidad y gran consumo 
-                a los hogares, garantizando siempre la mejor calidad y, sobre todo, <strong>precios justos</strong>.
-              </p>
-              <p className="text-lg leading-relaxed">
-                A lo largo de los años, nos hemos consolidado como la opción preferida de miles de familias 
-                que buscan maximizar su presupuesto sin sacrificar la calidad de lo que llevan a su mesa.
-              </p>
+              
+              {/* Mapeamos los párrafos dinámicamente */}
+              {historiaParrafos.length > 0 ? (
+                historiaParrafos.map((parrafo) => (
+                  <p key={parrafo.id} className="text-lg leading-relaxed">
+                    {parrafo.contenido}
+                  </p>
+                ))
+              ) : (
+                <p className="text-gray-400 italic">No hay información de historia disponible.</p>
+              )}
             </div>
           </div>
         </section>
 
-        {/* --- MISIÓN Y VISIÓN --- */}
+        {/* --- 3. MISIÓN Y VISIÓN --- */}
         <section className="bg-white py-16 shadow-inner">
           <div className="max-w-7xl mx-auto px-4">
             <div className="grid md:grid-cols-2 gap-10">
               
-              {/* Misión */}
+              {/* Card Misión */}
               <div className="bg-red-50 rounded-3xl p-10 border border-red-100 shadow-sm hover:shadow-md transition-all">
                 <div className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center mb-6 shadow-lg text-white">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z" />
                     </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Misión</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">{mision?.titulo || 'Misión'}</h3>
                 <p className="text-gray-700 leading-relaxed">
-                  Ofrecer a nuestros clientes una experiencia de compra ágil y cercana, brindando un surtido variado de productos de calidad a precios bajos todos los días, contribuyendo así a mejorar la calidad de vida de las comunidades donde operamos.
+                  {mision?.contenido || 'Cargando misión...'}
                 </p>
               </div>
 
-              {/* Visión */}
+              {/* Card Visión */}
               <div className="bg-blue-50 rounded-3xl p-10 border border-blue-100 shadow-sm hover:shadow-md transition-all">
                 <div className="w-16 h-16 bg-[#1e3a5f] rounded-full flex items-center justify-center mb-6 shadow-lg text-white">
                   <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
@@ -189,9 +205,9 @@ function QuienesSomos() {
                     <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                   </svg>
                 </div>
-                <h3 className="text-2xl font-bold text-gray-900 mb-4">Visión</h3>
+                <h3 className="text-2xl font-bold text-gray-900 mb-4">{vision?.titulo || 'Visión'}</h3>
                 <p className="text-gray-700 leading-relaxed">
-                  Ser la cadena de supermercados líder en el formato de cercanía y ahorro en el Perú, reconocidos por nuestra eficiencia, vocación de servicio y compromiso con el desarrollo de nuestros colaboradores y la sociedad.
+                  {vision?.contenido || 'Cargando visión...'}
                 </p>
               </div>
 
@@ -199,25 +215,27 @@ function QuienesSomos() {
           </div>
         </section>
 
-        {/* --- NUESTROS VALORES --- */}
+        {/* --- 4. NUESTROS VALORES --- */}
         <section className="py-20 max-w-7xl mx-auto px-4 text-center">
           <h2 className="text-3xl font-bold text-gray-800 mb-12">Nuestros Valores</h2>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-            {[
-              { titulo: 'Integridad', icon: '💎', desc: 'Actuamos con transparencia y ética.' },
-              { titulo: 'Servicio', icon: '🤝', desc: 'El cliente es el centro de todo.' },
-              { titulo: 'Excelencia', icon: '🚀', desc: 'Mejoramos cada día lo que hacemos.' },
-              { titulo: 'Trabajo en Equipo', icon: '👥', desc: 'Juntos logramos grandes resultados.' },
-            ].map((val, idx) => (
-              <div key={idx} className="flex flex-col items-center group">
-                <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-4xl mb-4 group-hover:bg-red-100 group-hover:scale-110 transition-all duration-300 shadow-sm">
-                  {val.icon}
+          
+          {valores.length > 0 ? (
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+              {valores.map((val) => (
+                <div key={val.id} className="flex flex-col items-center group">
+                  <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center text-4xl mb-4 group-hover:bg-red-100 group-hover:scale-110 transition-all duration-300 shadow-sm border border-gray-200">
+                    {/* Renderizamos el Emoji guardado en imagen_url */}
+                    {val.imagen_url || '✨'}
+                  </div>
+                  <h4 className="text-xl font-bold text-gray-800 mb-2">{val.titulo}</h4>
+                  <p className="text-sm text-gray-500 max-w-[200px]">{val.contenido}</p>
                 </div>
-                <h4 className="text-xl font-bold text-gray-800 mb-2">{val.titulo}</h4>
-                <p className="text-sm text-gray-500">{val.desc}</p>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          ) : (
+            <p className="text-gray-400">Cargando valores...</p>
+          )}
+
         </section>
       </main>
       <QRCanal />

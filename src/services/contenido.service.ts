@@ -1,11 +1,12 @@
+// src/services/contenido.service.ts
 import { supabase } from '../lib/supabase'
 
-// 1. Tipos de las OFERTAS (Nuevo archivo)
+// 1. Tipos de las OFERTAS
 import type { Oferta } from '../types/Oferta'
 
-// 2. Tipos del CONTENIDO (Archivo existente)
+// 2. Tipos del CONTENIDO
 import type { 
-  ContenidoInicio, 
+  ContenidoHome, 
   ContenidoNosotros, 
   Tienda 
 } from '../types/Contenido'
@@ -16,7 +17,7 @@ import type {
 // ==========================================
 export const obtenerOfertasCombos = async (): Promise<Oferta[]> => {
   const { data, error } = await supabase
-    .from('ofertas') // Tabla nueva
+    .from('ofertas') 
     .select(`
       *,
       oferta_productos (
@@ -29,8 +30,7 @@ export const obtenerOfertasCombos = async (): Promise<Oferta[]> => {
         )
       )
     `)
-    // NOTA: "producto:productos" es un alias para que el objeto 
-    // se llame "producto" (singular) y no "productos" (array)
+    // Asumiendo que la tabla 'ofertas' tiene la columna 'activo'
     .eq('activo', true)
     .order('created_at', { ascending: false });
 
@@ -44,26 +44,27 @@ export const obtenerOfertasCombos = async (): Promise<Oferta[]> => {
 
 
 // ==========================================
-// 2. SERVICIO INICIO (Banners y Videos)
+// 2. SERVICIO HOME (Banners y Videos)
 // ==========================================
-export const obtenerContenidoInicio = async (): Promise<ContenidoInicio[]> => {
+export const obtenerContenidoHome = async (): Promise<ContenidoHome[]> => {
+  // ⚠️ AQUÍ APUNTAMOS A LA TABLA CORRECTA
   const { data, error } = await supabase
-    .from('contenidos_inicio')
+    .from('contenido_home') 
     .select('*')
-    .eq('activo', true)
-    .order('orden', { ascending: true })
+    // .eq('activo', true) // Comentado porque la tabla aún no tiene esta columna
+    .order('created_at', { ascending: false }) 
 
   if (error) {
-    console.error('Error cargando contenido de inicio:', error)
+    console.error('Error cargando contenido home:', error)
     return []
   }
 
-  return data as ContenidoInicio[]
+  return (data as ContenidoHome[]) || []
 }
 
 
 // ==========================================
-// 3. SERVICIO NOSOTROS
+// 3. SERVICIO NOSOTROS (Futuro)
 // ==========================================
 export const obtenerContenidoNosotros = async (): Promise<ContenidoNosotros[]> => {
   const { data, error } = await supabase
@@ -71,20 +72,14 @@ export const obtenerContenidoNosotros = async (): Promise<ContenidoNosotros[]> =
     .select('*')
     .order('orden', { ascending: true })
 
-  if (error) {
-    console.error('Error cargando contenido nosotros:', error)
-    return []
-  }
-
+  if (error) return []
   return data as ContenidoNosotros[]
 }
 
 
 // ==========================================
-// 4. SERVICIOS TIENDAS
+// 4. SERVICIOS TIENDAS (Futuro)
 // ==========================================
-
-// Obtener el banner de la página tiendas
 export const obtenerBannerTiendas = async (): Promise<string> => {
   const { data, error } = await supabase
     .from('contenido_tiendas')
@@ -92,32 +87,24 @@ export const obtenerBannerTiendas = async (): Promise<string> => {
     .limit(1)
     .single()
 
-  if (error) {
-    console.error('Error cargando banner tiendas:', error)
-    return ''
-  }
+  if (error) return ''
   return data?.url || ''
 }
 
-// Obtener la lista de sucursales
 export const obtenerTiendas = async (): Promise<Tienda[]> => {
   const { data, error } = await supabase
     .from('tiendas')
     .select('*')
     .order('orden', { ascending: true })
 
-  if (error) {
-    console.error('Error cargando lista de tiendas:', error)
-    return []
-  }
+  if (error) return []
   return data as Tienda[]
 }
 
 
 // ==========================================
-// 5. SERVICIOS CONTACTO
+// 5. SERVICIOS CONTACTO (Futuro)
 // ==========================================
-
 export const obtenerBannerContacto = async (): Promise<string> => {
   const { data, error } = await supabase
     .from('contenido_contacto')
@@ -125,10 +112,7 @@ export const obtenerBannerContacto = async (): Promise<string> => {
     .limit(1)
     .single()
 
-  if (error) {
-    console.error('Error cargando banner contacto:', error)
-    return ''
-  }
+  if (error) return ''
   return data?.url || ''
 }
 
@@ -137,12 +121,8 @@ export const obtenerAjustesContacto = async (): Promise<Record<string, string>> 
     .from('ajustes_contacto')
     .select('clave, valor')
 
-  if (error) {
-    console.error('Error cargando ajustes contacto:', error)
-    return {}
-  }
+  if (error) return {}
 
-  // Convertimos el array de objetos en un objeto simple: { telefono: '...', email: '...' }
   return data.reduce((acc: any, item) => {
     acc[item.clave] = item.valor
     return acc

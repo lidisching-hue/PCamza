@@ -1,24 +1,29 @@
 import { useEffect, useState } from 'react'
 import { Helmet } from 'react-helmet-async'
+
+// Tipos
 import type { Producto } from '../types/Producto'
-import type { ContenidoInicio } from '../types/Contenido' // <--- Importamos el tipo
+import type { ContenidoHome } from '../types/Contenido' 
+
+// Componentes
 import ProductCard from '../components/ProductCard'
-import { obtenerProductos } from '../services/productos.service'
-import { obtenerContenidoInicio } from '../services/contenido.service'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import QRCanal from '../components/qrcanal'
- // TypeScript infiere la extensión .tsx
+
+// Servicios
+import { obtenerProductos } from '../services/productos.service'
+import { obtenerContenidoHome } from '../services/contenido.service' 
 
 function Home() {
   const [productos, setProductos] = useState<Producto[]>([])
   
-  // ESTADOS TIPADOS PARA CONTENIDO DINÁMICO
+  // ESTADOS PARA CONTENIDO DINÁMICO
   const [banners, setBanners] = useState<string[]>([])
   const [ofertasImages, setOfertasImages] = useState<string[]>([])
   const [videosOfertas, setVideosOfertas] = useState<string[]>([])
 
-  // Estados de los carruseles (números)
+  // Estados de los carruseles (índices)
   const [currentSlide, setCurrentSlide] = useState(0)
   const [ofertas1Slide, setOfertas1Slide] = useState(0)
   const [ofertas2Slide, setOfertas2Slide] = useState(0)
@@ -26,15 +31,14 @@ function Home() {
   // 1. CARGA DE DATOS
   useEffect(() => {
     const cargarTodo = async () => {
-      // Cargar productos
+      // A. Cargar productos
       const dataProds = await obtenerProductos()
       setProductos(dataProds || [])
 
-      // Cargar contenidos del home desde Supabase
-      const dataContenidos: ContenidoInicio[] = await obtenerContenidoInicio()
+      // B. Cargar contenidos del home
+      const dataContenidos: ContenidoHome[] = await obtenerContenidoHome() 
       
       if (dataContenidos.length > 0) {
-        // TypeScript ahora sabe que 'c.seccion' y 'c.url' existen
         setBanners(
           dataContenidos.filter(c => c.seccion === 'banner').map(c => c.url)
         )
@@ -52,15 +56,13 @@ function Home() {
   // 2. ROTACIÓN AUTOMÁTICA DEL BANNER
   useEffect(() => {
     if (banners.length === 0) return
-    
     const interval = setInterval(() => {
       setCurrentSlide((prev) => (prev + 1) % banners.length) 
     }, 5000)
-    
     return () => clearInterval(interval)
-  }, [banners]) // Dependencia: si cambian los banners, reinicia el timer
+  }, [banners])
 
-  // Iconos SVG (Componentes funcionales simples)
+  // Iconos SVG
   const IconoIzquierda = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6">
       <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5 8.25 12l7.5-7.5" />
@@ -85,22 +87,32 @@ function Home() {
       {/* --- BANNER PRINCIPAL --- */}
       <section className="relative w-full">
         {banners.length > 0 ? (
-          <div className="relative overflow-hidden w-full group">
-            <div
-              className="flex transition-transform duration-500 ease-in-out w-full"
-              style={{ transform: `translateX(-${currentSlide * 100}%)` }}
-            >
-              {banners.map((img, idx) => (
-                <img
-                  key={idx}
-                  src={img}
-                  alt={`Banner ${idx + 1}`}
-                  className="w-full flex-shrink-0 object-cover h-auto min-h-[200px] md:min-h-[400px]"
-                />
-              ))}
+          // ⬇️ 1. Definimos la altura del Banner (200px en móvil, 500px en PC)
+          <div className="relative w-full h-[200px] md:h-[420px] group">
+            
+            {/* Contenedor del Slide */}
+            <div className="overflow-hidden w-full h-full">
+                <div
+                className="flex transition-transform duration-500 ease-in-out w-full h-full"
+                style={{ transform: `translateX(-${currentSlide * 100}%)` }}
+                >
+                {banners.map((img, idx) => (
+                    // ⬇️ 2. El contenedor de la imagen ocupa todo el alto y ancho
+                    <div key={idx} className="w-full h-full flex-shrink-0">
+                        <img
+                        src={img}
+                        alt={`Banner ${idx + 1}`}
+                        // ⬇️ 3. CLAVE: w-full h-full object-fill
+                        // Esto fuerza a la imagen a estirarse para llenar el cuadro
+                        // sin recortarse y sin dejar espacios, aunque se deforme un poco.
+                        className="w-full h-full object-fill" 
+                        />
+                    </div>
+                ))}
+                </div>
             </div>
 
-            {/* Botones de navegación (solo si hay más de 1 imagen) */}
+            {/* Navegación Banner */}
             {banners.length > 1 && (
               <>
                 <button
@@ -131,8 +143,7 @@ function Home() {
             )}
           </div>
         ) : (
-           /* Placeholder mientras carga */
-           <div className="w-full h-[300px] bg-gray-200 animate-pulse flex items-center justify-center text-gray-400">
+           <div className="w-full h-[200px] md:h-[500px] bg-gray-200 animate-pulse flex items-center justify-center text-gray-400">
              Cargando Banners...
            </div>
         )}
@@ -191,7 +202,7 @@ function Home() {
             )}
           </div>
 
-          {/* 2. DERECHA: Video Player (Nativo para MP4) */}
+          {/* 2. DERECHA: Video Player */}
           <div className="relative bg-black rounded-3xl h-full overflow-hidden group">
              {videosOfertas.length > 0 ? (
                <>
@@ -239,14 +250,13 @@ function Home() {
         </div>
       </section>
 
-      {/* Sección de Productos y Footer (Igual que antes) */}
+      {/* Sección Productos */}
       <section className="bg-white py-12">
         <div className="max-w-7xl mx-auto px-4">
           <div className="flex flex-col md:flex-row justify-between items-center mb-10 gap-4">
             <h2 className="text-3xl font-bold text-gray-800">
               Ofertas PECAMZA
             </h2>
-             {/* ... Botones ver más ... */}
              <div className="flex gap-3">
                <a href="/ofertas" className="px-6 py-2.5 bg-red-600 text-white rounded-full font-semibold text-sm hover:bg-red-700 transition-colors shadow-md flex items-center gap-2">Ver más ofertas</a>
              </div>
