@@ -1,6 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
-import { uploadProductImage } from '../services/productAdmin.service' // Reutilizamos tu servicio de imágenes
+import { Toaster } from 'react-hot-toast' // Agregamos Toaster para las notificaciones
+import { uploadProductImage } from '../services/productAdmin.service' 
+
+// 👇 1. IMPORTAMOS EL COMPONENTE NUEVO (Asegúrate de haberlo creado en la carpeta components)
+import AdminOfertasTitulo from '../components/AdminOfertasTitulo'
 
 // Definimos tipos locales para esta pantalla
 interface ProductoSelect {
@@ -208,92 +212,111 @@ export default function AdminOfertas() {
 
   // --- RENDERIZADO ---
   return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <div>
-           <h1 className="text-3xl font-bold text-gray-800">Gestión de Packs & Ofertas</h1>
-           <p className="text-gray-500">Crea combos irresistibles sumando tus productos.</p>
-        </div>
-        <button 
-          onClick={() => setIsModalOpen(true)}
-          className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg flex items-center gap-2"
-        >
-          <span>+</span> Crear Nuevo Combo
-        </button>
-      </div>
+    <div className="max-w-7xl mx-auto p-6 space-y-12">
+      {/* Notificaciones */}
+      <Toaster position="top-right" />
 
-      {/* LISTADO DE OFERTAS EXISTENTES */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {loading ? <p>Cargando ofertas...</p> : ofertas.map(oferta => {
-           // Calcular precio real de esta oferta para mostrar info
-           const real = oferta.oferta_productos.reduce((acc, item) => acc + (item.producto.precio * item.cantidad), 0)
-           
-           return (
-             <div key={oferta.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-md transition">
-               <div className="h-40 bg-gray-100 relative">
-                 {oferta.imagen_url ? (
-                   <img src={oferta.imagen_url} className="w-full h-full object-cover" />
-                 ) : (
-                   <div className="flex items-center justify-center h-full text-gray-400 font-bold">SIN IMAGEN</div>
-                 )}
-                 <div className="absolute top-2 right-2 bg-black text-white text-xs font-bold px-2 py-1 rounded">
-                    S/ {oferta.precio_oferta}
-                 </div>
-               </div>
-               <div className="p-4">
-                 <h3 className="font-bold text-lg leading-tight mb-1">{oferta.nombre}</h3>
-                 <p className="text-xs text-gray-500 mb-3 line-clamp-2">{oferta.descripcion}</p>
-                 
-                 <div className="bg-gray-50 p-2 rounded text-xs text-gray-600 space-y-1 mb-3">
-                    {oferta.oferta_productos.map((op, idx) => (
-                      <div key={idx} className="flex justify-between">
-                         <span>{op.producto.nombre}</span>
-                         <span className="font-bold">x{op.cantidad}</span>
-                      </div>
-                    ))}
-                 </div>
-                 
-                 <div className="flex justify-between items-center border-t pt-3">
-                    <span className="text-xs text-gray-400 line-through">Real: S/ {real}</span>
-                    <button onClick={() => handleDelete(oferta.id)} className="text-red-500 hover:text-red-700 text-sm font-bold">
-                      Eliminar
-                    </button>
-                 </div>
-               </div>
-             </div>
-           )
-        })}
-      </div>
+      {/* ==============================================
+          SECCIÓN 1: CONFIGURACIÓN DEL BANNER PRINCIPAL
+          ============================================== */}
+      <section>
+          <h2 className="text-2xl font-bold text-gray-800 mb-4 flex items-center gap-2">
+          </h2>
+          <AdminOfertasTitulo />
+      </section>
 
-      {/* MODAL CREADOR DE PACKS */}
+      <hr className="border-gray-300" />
+
+      {/* ==============================================
+          SECCIÓN 2: GESTIÓN DE PACKS Y COMBOS
+          ============================================== */}
+      <section>
+          <div className="flex justify-between items-center mb-6">
+            <div>
+               <h1 className="text-3xl font-bold text-gray-800">Gestión de Packs & Ofertas</h1>
+               <p className="text-gray-500">Crea combos irresistibles sumando tus productos.</p>
+            </div>
+            <button 
+              onClick={() => setIsModalOpen(true)}
+              className="bg-black text-white px-6 py-3 rounded-xl font-bold hover:bg-gray-800 transition shadow-lg flex items-center gap-2"
+            >
+              <span>+</span> Crear Nuevo Combo
+            </button>
+          </div>
+
+          {/* LISTADO DE OFERTAS EXISTENTES */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {loading ? <p>Cargando ofertas...</p> : ofertas.map(oferta => {
+               // Calcular precio real de esta oferta para mostrar info
+               const real = oferta.oferta_productos.reduce((acc, item) => acc + (item.producto.precio * item.cantidad), 0)
+               
+               return (
+                 <div key={oferta.id} className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden group hover:shadow-md transition">
+                   <div className="h-40 bg-gray-100 relative">
+                     {oferta.imagen_url ? (
+                       <img src={oferta.imagen_url} className="w-full h-full object-cover" />
+                     ) : (
+                       <div className="flex items-center justify-center h-full text-gray-400 font-bold">SIN IMAGEN</div>
+                     )}
+                     <div className="absolute top-2 right-2 bg-black text-white text-xs font-bold px-2 py-1 rounded">
+                        S/ {oferta.precio_oferta}
+                     </div>
+                   </div>
+                   <div className="p-4">
+                     <h3 className="font-bold text-lg leading-tight mb-1">{oferta.nombre}</h3>
+                     <p className="text-xs text-gray-500 mb-3 line-clamp-2">{oferta.descripcion}</p>
+                     
+                     <div className="bg-gray-50 p-2 rounded text-xs text-gray-600 space-y-1 mb-3">
+                        {oferta.oferta_productos.map((op, idx) => (
+                          <div key={idx} className="flex justify-between">
+                              <span>{op.producto.nombre}</span>
+                              <span className="font-bold">x{op.cantidad}</span>
+                          </div>
+                        ))}
+                     </div>
+                     
+                     <div className="flex justify-between items-center border-t pt-3">
+                        <span className="text-xs text-gray-400 line-through">Real: S/ {real}</span>
+                        <button onClick={() => handleDelete(oferta.id)} className="text-red-500 hover:text-red-700 text-sm font-bold">
+                          Eliminar
+                        </button>
+                     </div>
+                   </div>
+                 </div>
+               )
+            })}
+          </div>
+      </section>
+
+      {/* MODAL CREADOR DE PACKS (Sin Cambios) */}
       {isModalOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
-           <div className="bg-white w-full max-w-6xl h-[90vh] rounded-2xl shadow-2xl flex overflow-hidden animate-fade-in">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+           <div className="bg-white w-full max-w-6xl h-[90vh] rounded-2xl shadow-2xl flex overflow-hidden">
               
               {/* COLUMNA IZQUIERDA: CONFIGURACIÓN DEL PACK */}
               <div className="w-1/3 bg-gray-50 border-r p-6 flex flex-col overflow-y-auto">
                  <h2 className="text-xl font-black text-gray-800 mb-4">1. Configura el Pack</h2>
                  
                  <div className="space-y-4 flex-1">
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 mb-1">NOMBRE DEL COMBO</label>
-                      <input 
-                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-black outline-none" 
-                        placeholder="Ej. Pack Gamer Supremo"
-                        value={nombre} onChange={e => setNombre(e.target.value)}
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 mb-1">DESCRIPCIÓN</label>
-                      <textarea 
-                        className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-black outline-none resize-none h-20" 
-                        placeholder="Describe lo increíble que es..."
-                        value={descripcion} onChange={e => setDescripcion(e.target.value)}
-                      />
-                    </div>
+                   <div>
+                     <label className="block text-xs font-bold text-gray-500 mb-1">NOMBRE DEL COMBO</label>
+                     <input 
+                       className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-black outline-none" 
+                       placeholder="Ej. Pack Gamer Supremo"
+                       value={nombre} onChange={e => setNombre(e.target.value)}
+                     />
+                   </div>
+                   
+                   <div>
+                     <label className="block text-xs font-bold text-gray-500 mb-1">DESCRIPCIÓN</label>
+                     <textarea 
+                       className="w-full p-2 border rounded-lg focus:ring-2 focus:ring-black outline-none resize-none h-20" 
+                       placeholder="Describe lo increíble que es..."
+                       value={descripcion} onChange={e => setDescripcion(e.target.value)}
+                     />
+                   </div>
 
-                    <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
+                   <div className="bg-white p-3 rounded-xl border border-gray-200 shadow-sm">
                        <div className="flex justify-between mb-2">
                           <span className="text-xs font-bold text-gray-400">PRECIO REAL (SUMA)</span>
                           <span className="font-bold text-gray-600 line-through">S/ {precioRealTotal}</span>
@@ -312,18 +335,18 @@ export default function AdminOfertas() {
                            ¡Ahorro del {porcentajeAhorro}%! 🔥
                          </div>
                        )}
-                    </div>
+                   </div>
 
-                    <div>
-                      <label className="block text-xs font-bold text-gray-500 mb-1">FECHA DE VENCIMIENTO (Opcional)</label>
-                      <input 
-                        type="date"
-                        className="w-full p-2 border rounded-lg text-sm"
-                        value={fechaVencimiento} onChange={e => setFechaVencimiento(e.target.value)}
-                      />
-                    </div>
+                   <div>
+                     <label className="block text-xs font-bold text-gray-500 mb-1">FECHA DE VENCIMIENTO (Opcional)</label>
+                     <input 
+                       type="date"
+                       className="w-full p-2 border rounded-lg text-sm"
+                       value={fechaVencimiento} onChange={e => setFechaVencimiento(e.target.value)}
+                     />
+                   </div>
 
-                    <div>
+                   <div>
                        <label className="block text-xs font-bold text-gray-500 mb-1">IMAGEN DEL PACK</label>
                        <div className="flex items-center gap-4">
                           <div className="w-16 h-16 bg-gray-200 rounded-lg overflow-hidden border">
@@ -342,10 +365,10 @@ export default function AdminOfertas() {
                             }}
                           />
                        </div>
-                    </div>
+                   </div>
 
-                    {/* LISTA DE ITEMS SELECCIONADOS */}
-                    <div className="mt-4 border-t pt-4">
+                   {/* LISTA DE ITEMS SELECCIONADOS */}
+                   <div className="mt-4 border-t pt-4">
                        <h3 className="text-xs font-black text-gray-800 mb-2">CONTENIDO DEL PACK ({itemsSeleccionados.length})</h3>
                        {itemsSeleccionados.length === 0 && <p className="text-xs text-gray-400 italic">Selecciona productos de la derecha 👉</p>}
                        <div className="space-y-2 max-h-40 overflow-y-auto pr-1">
@@ -368,7 +391,7 @@ export default function AdminOfertas() {
                              </div>
                           ))}
                        </div>
-                    </div>
+                   </div>
                  </div>
 
                  <div className="mt-6 flex gap-2">

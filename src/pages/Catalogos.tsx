@@ -1,88 +1,115 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-
-// 1. Importamos el tipo correcto
 import type { Oferta } from '../types/Oferta'
-
 import { useCart } from '../hooks/useCart'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import QRCanal from '../components/qrcanal'
-import { obtenerOfertasCombos } from '../services/contenido.service'
+// 👇 Tu importación original se mantiene intacta
+import { obtenerOfertasCombos, obtenerConfigOferta } from '../services/contenido.service'
 
 function Catalogos() {
   const [combos, setCombos] = useState<Oferta[]>([])
   const { addToCart } = useCart()
   
-  const [tiempo, setTiempo] = useState({ horas: 12, minutos: 0, segundos: 0 })
+  // ESTADO PARA LA CONFIGURACIÓN DINÁMICA
+  const [config, setConfig] = useState({
+    titulo: 'Cargando...',
+    subtitulo: '',
+    fecha_fin: null as string | null,
+    activo: true
+  })
+
+  // Estado del contador visual
+  const [tiempo, setTiempo] = useState({ horas: 0, minutos: 0, segundos: 0 })
 
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        const data = await obtenerOfertasCombos()
-        setCombos(data)
-        
-        // Lógica del contador
-        if (data.length > 0 && data[0].fecha_vencimiento) {
-           const fin = new Date(data[0].fecha_vencimiento).getTime()
-           const ahora = new Date().getTime()
-           const diff = fin - ahora
-           if (diff > 0) {
-             setTiempo({
-               horas: Math.floor(diff / (1000 * 60 * 60)),
-               minutos: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
-               segundos: Math.floor((diff % (1000 * 60)) / 1000)
-             })
-           }
+        // 1. Cargar Combos
+        const dataCombos = await obtenerOfertasCombos()
+        setCombos(dataCombos)
+
+        // 2. Cargar Configuración del Banner
+        const dataConfig = await obtenerConfigOferta()
+        if (dataConfig) {
+            setConfig(dataConfig)
+            // Calculamos el tiempo inicial
+            calcularTiempoRestante(dataConfig.fecha_fin)
         }
+
       } catch (error) {
-        console.error("Error cargando ofertas de la base de datos", error)
+        console.error("Error cargando datos", error)
       }
     }
     cargarDatos()
   }, [])
 
+  // Lógica del Temporizador
   useEffect(() => {
-    const timer = setInterval(() => {
-      setTiempo(prev => {
-        if (prev.segundos > 0) return { ...prev, segundos: prev.segundos - 1 }
-        if (prev.minutos > 0) return { ...prev, minutos: prev.minutos - 1, segundos: 59 }
-        if (prev.horas > 0) return { ...prev, horas: prev.horas - 1, minutos: 59, segundos: 59 }
-        return prev
-      })
-    }, 1000)
-    return () => clearInterval(timer)
-  }, [])
+    if (!config.fecha_fin) return;
 
+    const timer = setInterval(() => {
+      calcularTiempoRestante(config.fecha_fin!)
+    }, 1000)
+
+    return () => clearInterval(timer)
+  }, [config.fecha_fin])
+
+  const calcularTiempoRestante = (fechaFinString: string) => {
+      const fin = new Date(fechaFinString).getTime()
+      const ahora = new Date().getTime()
+      const diff = fin - ahora
+
+      if (diff > 0) {
+        setTiempo({
+          horas: Math.floor(diff / (1000 * 60 * 60)),
+          minutos: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
+          segundos: Math.floor((diff % (1000 * 60)) / 1000)
+        })
+      } else {
+        setTiempo({ horas: 0, minutos: 0, segundos: 0 })
+      }
+  }
+
+  // 👇 NUEVA FUNCIÓN: Convierte la fecha fea a "Lunes 12 de Octubre..."
+  const obtenerFechaLegible = () => {
+    if (!config.fecha_fin) return null;
+    const date = new Date(config.fecha_fin);
+    // Formato: "Lunes, 15 de Enero"
+    return date.toLocaleDateString('es-ES', { 
+        weekday: 'long', 
+        day: 'numeric', 
+        month: 'long',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+  }
+
+  // ... (Tus funciones de cálculo de precio se mantienen igual) ...
   const calcularDescuento = (normal: number, oferta: number) => {
     if (!normal || !oferta) return 0
     return Math.round(((normal - oferta) / normal) * 100)
   }
 
-  // Función auxiliar para calcular el precio real del pack sumando sus items
   const obtenerPrecioReal = (combo: Oferta) => {
     const sumaProductos = combo.oferta_productos?.reduce((acc, item) => {
       return acc + ((item.producto?.precio || 0) * item.cantidad)
     }, 0) || 0
-    
-    // Si la suma es 0 (por error de datos), asumimos un 20% más que la oferta
     return sumaProductos > 0 ? sumaProductos : (combo.precio_oferta * 1.2)
   }
 
   const manejarAgregarCombo = (combo: Oferta) => {
     const precioRealCalculado = obtenerPrecioReal(combo)
-
     const productoParaCarrito: any = {
       id: `combo-${combo.id}`,
       nombre: combo.nombre,
-      // AQUI CORREGIMOS EL ERROR: Usamos el cálculo dinámico
       precio: precioRealCalculado, 
       precio_oferta: combo.precio_oferta, 
       preciooferta: combo.precio_oferta,
       ofertaactiva: true,
       imagen_url: combo.imagen_url,
       esCombo: true,
-      
       oferta_productos: combo.oferta_productos?.map(op => ({
         nombre: op.producto?.nombre || 'Producto Desconocido',
         cantidad: op.cantidad
@@ -96,67 +123,78 @@ function Catalogos() {
       <Header />
 
       <main>
-        {/* SECCIÓN BANNER Y CONTADOR */}
-        <section className="relative bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white overflow-hidden">
-          <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 2px, transparent 2.5px)', backgroundSize: '20px 20px' }}></div>
-          
-          <div className="max-w-7xl mx-auto px-4 py-12 relative z-10">
-            <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-              
-              <div className="text-center md:text-left space-y-4">
-                <span className="bg-yellow-400 text-red-900 font-black px-4 py-1 rounded-full text-sm uppercase tracking-wider inline-block transform -rotate-2 shadow-lg">
-                  ¡Solo por tiempo limitado!
-                </span>
-                <h1 className="text-5xl md:text-7xl font-black italic tracking-tighter leading-none text-white drop-shadow-md">
-                  CIERRA <br/> PUERTAS PCAMZA
-                </h1>
-                <p className="text-xl text-red-100 font-medium">
-                  Las mejores canastas y combos en un solo lugar.
-                </p>
-              </div>
-
-              <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-2xl">
-                <p className="text-center text-red-100 mb-2 font-bold uppercase text-sm tracking-widest">Las ofertas terminan en:</p>
-                <div className="flex gap-4 text-center">
-                  <div>
-                    <div className="bg-white text-red-700 font-black text-4xl w-20 h-20 rounded-xl flex items-center justify-center shadow-lg">
-                      {tiempo.horas.toString().padStart(2, '0')}
-                    </div>
-                    <span className="text-xs mt-1 block">HORAS</span>
-                  </div>
-                  <div className="text-4xl font-bold flex items-center">:</div>
-                  <div>
-                    <div className="bg-white text-red-700 font-black text-4xl w-20 h-20 rounded-xl flex items-center justify-center shadow-lg">
-                      {tiempo.minutos.toString().padStart(2, '0')}
-                    </div>
-                    <span className="text-xs mt-1 block">MIN</span>
-                  </div>
-                  <div className="text-4xl font-bold flex items-center">:</div>
-                  <div>
-                    <div className="bg-yellow-400 text-red-800 font-black text-4xl w-20 h-20 rounded-xl flex items-center justify-center shadow-lg animate-pulse">
-                      {tiempo.segundos.toString().padStart(2, '0')}
-                    </div>
-                    <span className="text-xs mt-1 block">SEG</span>
-                  </div>
+        {/* SECCIÓN BANNER Y CONTADOR (DINÁMICA) */}
+        {config.activo && (
+            <section className="relative bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white overflow-hidden transition-all duration-500">
+            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 2px, transparent 2.5px)', backgroundSize: '20px 20px' }}></div>
+            
+            <div className="max-w-7xl mx-auto px-4 py-12 relative z-10">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-8">
+                
+                <div className="text-center md:text-left space-y-4">
+                    <span className="bg-yellow-400 text-red-900 font-black px-4 py-1 rounded-full text-sm uppercase tracking-wider inline-block transform -rotate-2 shadow-lg">
+                    ¡Solo por tiempo limitado!
+                    </span>
+                    {/* TÍTULO DINÁMICO */}
+                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-black italic tracking-tighter leading-none text-white drop-shadow-md uppercase">
+                    {config.titulo}
+                    </h1>
+                    {/* SUBTÍTULO DINÁMICO */}
+                    <p className="text-xl text-red-100 font-medium">
+                    {config.subtitulo}
+                    </p>
                 </div>
-              </div>
 
+                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-2xl">
+                    <p className="text-center text-red-100 mb-1 font-bold uppercase text-xs tracking-widest">
+                        Cierra Puertas termina el:
+                    </p>
+                    
+                    {/* 👇 AQUÍ MOSTRAMOS LA FECHA BONITA (Lunes, Martes, etc) */}
+                    <p className="text-center text-white font-black text-lg md:text-xl capitalize mb-4 bg-red-900/30 py-1 px-4 rounded-lg border border-red-500/30">
+                        🗓️ {obtenerFechaLegible()}
+                    </p>
+
+                    <div className="flex gap-4 text-center justify-center">
+                    <div>
+                        <div className="bg-white text-red-700 font-black text-4xl w-20 h-20 rounded-xl flex items-center justify-center shadow-lg">
+                        {tiempo.horas.toString().padStart(2, '0')}
+                        </div>
+                        <span className="text-xs mt-1 block">HORAS</span>
+                    </div>
+                    <div className="text-4xl font-bold flex items-center">:</div>
+                    <div>
+                        <div className="bg-white text-red-700 font-black text-4xl w-20 h-20 rounded-xl flex items-center justify-center shadow-lg">
+                        {tiempo.minutos.toString().padStart(2, '0')}
+                        </div>
+                        <span className="text-xs mt-1 block">MIN</span>
+                    </div>
+                    <div className="text-4xl font-bold flex items-center">:</div>
+                    <div>
+                        <div className="bg-yellow-400 text-red-800 font-black text-4xl w-20 h-20 rounded-xl flex items-center justify-center shadow-lg animate-pulse">
+                        {tiempo.segundos.toString().padStart(2, '0')}
+                        </div>
+                        <span className="text-xs mt-1 block">SEG</span>
+                    </div>
+                    </div>
+                </div>
+
+                </div>
             </div>
-          </div>
-          
-          <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none">
-            <svg className="relative block w-[calc(100%+1.3px)] h-[50px]" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" className="fill-[#f3f4f6]"></path>
-            </svg>
-          </div>
-        </section>
+            
+            <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none">
+                <svg className="relative block w-[calc(100%+1.3px)] h-[50px]" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
+                    <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" className="fill-[#f3f4f6]"></path>
+                </svg>
+            </div>
+            </section>
+        )}
 
         {/* LISTA DE COMBOS */}
         <section className="max-w-7xl mx-auto px-4 py-12">
-          {combos.length > 0 ? (
+            {combos.length > 0 ? (
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {combos.map((combo) => {
-                // CORRECCIÓN CLAVE: Calculamos el precio real sumando los items
                 const precioNormal = obtenerPrecioReal(combo)
                 const porcentajeDescuento = calcularDescuento(precioNormal, combo.precio_oferta)
                 
@@ -190,11 +228,9 @@ function Catalogos() {
                       </p>
 
                       <div className="flex flex-col mb-3">
-                        {/* Precio Real (Tachado) */}
                         <span className="text-gray-400 text-xs line-through decoration-red-500 decoration-1">
                           S/ {precioNormal.toFixed(2)}
                         </span>
-                        {/* Precio Oferta */}
                         <div className="flex items-baseline gap-1 text-red-600">
                             <span className="text-sm font-bold">S/</span>
                             <span className="text-3xl font-black tracking-tighter">{combo.precio_oferta?.toFixed(2)}</span>

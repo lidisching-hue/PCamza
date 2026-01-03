@@ -9,7 +9,7 @@ export default function AdminLayout() {
   
   // --- ESTADOS ---
   const [isSidebarOpen, setSidebarOpen] = useState(true);
-  const [isContentMenuOpen, setContentMenuOpen] = useState(false); // Empieza cerrado para mantener limpieza
+  const [isContentMenuOpen, setContentMenuOpen] = useState(false); // Empieza cerrado
   const [loading, setLoading] = useState(true);
 
   // --- 1. PROTECCIÓN DE RUTA (Auth) ---
@@ -149,9 +149,13 @@ export default function AdminLayout() {
                         👥 Quiénes Somos
                     </Link>
                     
-                    {/* Link Placeholder (Deshabilitado visualmente si no hay ruta) */}
-                    <Link to="#" className={`${subLinkClasses('#')} opacity-50 cursor-not-allowed`}>
-                        🚧 Otros (Pronto)
+                    {/* ✅ CAMBIO AQUÍ: Link de Tiendas Agregado */}
+                    <Link to="/admin/tiendas" className={subLinkClasses('/admin/tiendas')}>
+                        🏪 Nuestras Tiendas
+                    </Link>
+                                        {/* ✅ CAMBIO AQUÍ: Link de contacctanos Agregado */}
+                    <Link to="/admin/contacto" className={subLinkClasses('/admin/contacto')}>
+                        📞 Contacto 
                     </Link>
                 </div>
             )}

@@ -21,8 +21,9 @@ import Dashboard from '../admin/pages/Dashboard'
 import AdminProductos from '../admin/pages/AdminProductos'
 import AdminOfertas from '../admin/pages/AdminOfertas'
 import AdminBanners from '../admin/pages/AdminBanners'
-// 👇 IMPORTAMOS LA NUEVA PÁGINA (Ajusta la ruta si la guardaste en otra carpeta)
 import AdminNosotros from '../admin/pages/AdminNosotros' 
+import AdminTiendas from '../admin/pages/AdminTiendas' // ✅ IMPORTADO
+import AdminContactanos from '../admin/pages/AdminContactanos'
 
 /* ========================================================================
    3. COMPONENTES PLACEHOLDER (TEMPORALES)
@@ -68,15 +69,17 @@ function AppContent() {
               <Route index element={<Dashboard />} /> 
               <Route path="dashboard" element={<Dashboard />} />
               
-              {/* Módulos de gestión */}
+              {/* Módulos de gestión Operativa */}
               <Route path="productos" element={<AdminProductos />} />
-              <Route path="ofertas" element={<AdminOfertas />} />
-              <Route path="banners" element={<AdminBanners />} />
-              
-              {/* 👇 NUEVA RUTA AGREGADA */}
-              <Route path="nosotros" element={<AdminNosotros />} />
-              
               <Route path="pedidos" element={<AdminPedidos />} />
+              <Route path="ofertas" element={<AdminOfertas />} />
+
+              {/* Módulos de gestión Web */}
+              <Route path="banners" element={<AdminBanners />} />
+              <Route path="nosotros" element={<AdminNosotros />} />
+              <Route path="tiendas" element={<AdminTiendas />} /> {/* ✅ RUTA AGREGADA */}
+              <Route path="contacto" element={<AdminContactanos />} />
+             
           </Route>
 
           {/* --- C. RUTA 404 --- */}
