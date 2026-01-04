@@ -2,15 +2,40 @@
 import { supabase } from '../lib/supabase'
 
 // ==========================================
-// IMPORTACIÓN DE TIPOS
+// TIPOS E INTERFACES
 // ==========================================
-// Asegúrate de que estos tipos existan en tu carpeta types
 import type { Oferta } from '../types/Oferta'
 import type { 
   ContenidoHome, 
   ContenidoNosotros, 
   Tienda 
 } from '../types/Contenido'
+
+// Definimos tipos locales si no están en la carpeta types
+export interface InfoContacto {
+  id: number;
+  banner_url: string;
+  titulo: string;
+  bajada: string;
+  direccion: string;
+  telefono: string;
+  email: string;
+  horario: string;
+  facebook: string;
+  instagram: string;
+  tiktok: string;
+  whatsapp: string;
+}
+
+export interface MensajeContacto {
+  id?: number;
+  created_at?: string;
+  nombre: string;
+  email: string;
+  asunto: string;
+  mensaje: string;
+  leido?: boolean;
+}
 
 // ==========================================
 // 1. SERVICIO DE OFERTAS (PACKS)
@@ -30,7 +55,6 @@ export const obtenerOfertasCombos = async (): Promise<Oferta[]> => {
         )
       )
     `)
-    // Solo mostramos las activas en la web pública
     .eq('activo', true)
     .order('created_at', { ascending: false });
 
@@ -41,7 +65,6 @@ export const obtenerOfertasCombos = async (): Promise<Oferta[]> => {
   
   return data as Oferta[];
 };
-
 
 // ==========================================
 // 2. SERVICIO HOME (Banners y Videos)
@@ -60,7 +83,6 @@ export const obtenerContenidoHome = async (): Promise<ContenidoHome[]> => {
   return (data as ContenidoHome[]) || []
 }
 
-
 // ==========================================
 // 3. SERVICIO NOSOTROS
 // ==========================================
@@ -68,21 +90,17 @@ export const obtenerContenidoNosotros = async (): Promise<ContenidoNosotros[]> =
   const { data, error } = await supabase
     .from('contenido_nosotros')
     .select('*')
-    // Asumiendo que tienes una columna 'orden' o 'id'
     .order('id', { ascending: true })
 
   if (error) return []
   return data as ContenidoNosotros[]
 }
 
-
 // ==========================================
-// 4. SERVICIOS TIENDAS (ACTUALIZADO)
+// 4. SERVICIOS TIENDAS
 // ==========================================
 
 // --- LECTURA ---
-
-// A. Obtener el banner superior (desde config_tiendas)
 export const obtenerBannerTiendas = async (): Promise<string> => {
   const { data, error } = await supabase
     .from('config_tiendas') 
@@ -93,12 +111,11 @@ export const obtenerBannerTiendas = async (): Promise<string> => {
   return data?.banner_url || ''
 }
 
-// B. Obtener la lista de tiendas (desde contenido_tiendas)
 export const obtenerTiendas = async (): Promise<Tienda[]> => {
   const { data, error } = await supabase
-    .from('contenido_tiendas') // ✅ Nombre de tabla actualizado
+    .from('contenido_tiendas') 
     .select('*')
-    .order('orden', { ascending: true }) // ✅ Ordenar por columna 'orden'
+    .order('orden', { ascending: true })
 
   if (error) {
     console.error('Error al obtener tiendas:', error)
@@ -108,11 +125,9 @@ export const obtenerTiendas = async (): Promise<Tienda[]> => {
 }
 
 // --- ESCRITURA (ADMIN) ---
-
-// 1. Crear Tienda
 export const crearTienda = async (tienda: Omit<Tienda, 'id'>) => {
   const { data, error } = await supabase
-    .from('contenido_tiendas') // ✅ Tabla correcta
+    .from('contenido_tiendas')
     .insert(tienda)
     .select()
     
@@ -120,32 +135,27 @@ export const crearTienda = async (tienda: Omit<Tienda, 'id'>) => {
   return data
 }
 
-// 2. Actualizar Tienda
 export const actualizarTienda = async (id: string | number, tienda: Partial<Tienda>) => {
   const { error } = await supabase
-    .from('contenido_tiendas') // ✅ Tabla correcta
+    .from('contenido_tiendas')
     .update(tienda)
     .eq('id', id)
     
   if (error) throw error
 }
 
-// 3. Eliminar Tienda
 export const eliminarTienda = async (id: string | number) => {
   const { error } = await supabase
-    .from('contenido_tiendas') // ✅ Tabla correcta
+    .from('contenido_tiendas')
     .delete()
     .eq('id', id)
     
   if (error) throw error
 }
 
-// 4. Subir Banner Tiendas (Guardar en carpeta específica)
 export const subirBannerTiendas = async (file: File) => {
-  // ✅ Generamos ruta con carpeta 'contenido_tiendas/'
   const fileName = `contenido_tiendas/banner-${Date.now()}`
   
-  // 1. Subir al Storage (Bucket: 'contenido')
   const { error: uploadError } = await supabase.storage
     .from('contenido')
     .upload(fileName, file, {
@@ -155,12 +165,10 @@ export const subirBannerTiendas = async (file: File) => {
   
   if (uploadError) throw uploadError
   
-  // 2. Obtener URL pública
   const { data: publicData } = supabase.storage
     .from('contenido')
     .getPublicUrl(fileName)
   
-  // 3. Guardar referencia en la base de datos (config_tiendas)
   const { error: dbError } = await supabase
     .from('config_tiendas')
     .update({ banner_url: publicData.publicUrl })
@@ -171,9 +179,8 @@ export const subirBannerTiendas = async (file: File) => {
   return publicData.publicUrl
 }
 
-
 // ==========================================
-// 5. SERVICIOS CONTACTO
+// 5. SERVICIOS CONTACTO Y CONFIGURACIÓN
 // ==========================================
 export const obtenerBannerContacto = async (): Promise<string> => {
   const { data, error } = await supabase
@@ -193,16 +200,14 @@ export const obtenerAjustesContacto = async (): Promise<Record<string, string>> 
 
   if (error) return {}
 
-  // Convertimos array de objetos a un solo objeto clave:valor
-  return data.reduce((acc: any, item) => {
+  return data.reduce((acc: any, item: any) => {
     acc[item.clave] = item.valor
     return acc
   }, {})
 }
 
-
 // ==========================================
-// 6. CONFIGURACIÓN OFERTAS (Contador/Banner Home)
+// 6. CONFIGURACIÓN OFERTAS (Home)
 // ==========================================
 export const obtenerConfigOferta = async () => {
   const { data, error } = await supabase
@@ -227,30 +232,15 @@ export const actualizarConfigOferta = async (datos: {
 
   if (error) throw error
 }
-// --- AGREGAR AL FINAL DE contenido.service.ts ---
 
-// Definimos la interfaz aquí mismo o muévela a tu archivo de types
-export interface InfoContacto {
-  id: number;
-  banner_url: string;
-  titulo: string;
-  bajada: string;
-  direccion: string;
-  telefono: string;
-  email: string;
-  horario: string;
-  facebook: string;
-  instagram: string;
-  tiktok: string;
-  whatsapp: string;
-}
-
-// 1. OBTENER DATOS CONTACTO
+// ==========================================
+// 7. INFO DE CONTACTO (Página Contacto)
+// ==========================================
 export const obtenerInfoContacto = async (): Promise<InfoContacto | null> => {
   const { data, error } = await supabase
     .from('contenido_contactanos')
     .select('*')
-    .single() // Solo queremos una fila
+    .single()
 
   if (error) {
     console.error('Error al obtener contacto:', error)
@@ -259,22 +249,18 @@ export const obtenerInfoContacto = async (): Promise<InfoContacto | null> => {
   return data as InfoContacto
 }
 
-// 2. ACTUALIZAR DATOS CONTACTO (Texto)
 export const actualizarInfoContacto = async (datos: Partial<InfoContacto>) => {
   const { error } = await supabase
     .from('contenido_contactanos')
     .update(datos)
-    .eq('id', 1) // Siempre actualizamos la fila 1
+    .eq('id', 1)
 
   if (error) throw error
 }
 
-// 3. SUBIR BANNER CONTACTO (Carpeta específica)
 export const subirBannerContacto = async (file: File) => {
-  // ✅ AQUÍ ESTÁ LA CARPETA QUE PEDISTE
   const fileName = `contenido_contactanos/banner-${Date.now()}`
   
-  // A. Subir al Storage
   const { error: uploadError } = await supabase.storage
     .from('contenido')
     .upload(fileName, file, {
@@ -284,12 +270,10 @@ export const subirBannerContacto = async (file: File) => {
   
   if (uploadError) throw uploadError
   
-  // B. Obtener URL
   const { data: publicData } = supabase.storage
     .from('contenido')
     .getPublicUrl(fileName)
   
-  // C. Guardar URL en la base de datos
   const { error: dbError } = await supabase
     .from('contenido_contactanos')
     .update({ banner_url: publicData.publicUrl })
@@ -300,20 +284,9 @@ export const subirBannerContacto = async (file: File) => {
   return publicData.publicUrl
 }
 
-// --- AGREGAR A contenido.service.ts ---
-
-// Interfaz para los mensajes
-export interface MensajeContacto {
-  id?: number;
-  created_at?: string;
-  nombre: string;
-  email: string;
-  asunto: string;
-  mensaje: string;
-  leido?: boolean;
-}
-
-// 1. ENVIAR MENSAJE (Desde el formulario público)
+// ==========================================
+// 8. MENSAJERÍA DE CONTACTO
+// ==========================================
 export const enviarMensajeContacto = async (datos: MensajeContacto) => {
   const { error } = await supabase
     .from('mensajes_contacto')
@@ -322,18 +295,16 @@ export const enviarMensajeContacto = async (datos: MensajeContacto) => {
   if (error) throw error
 }
 
-// 2. OBTENER MENSAJES (Para el Admin)
 export const obtenerMensajesContacto = async () => {
   const { data, error } = await supabase
     .from('mensajes_contacto')
     .select('*')
-    .order('created_at', { ascending: false }) // Los más nuevos primero
+    .order('created_at', { ascending: false })
 
   if (error) throw error
   return data as MensajeContacto[]
 }
 
-// 3. BORRAR MENSAJE (Opcional, para limpiar bandeja)
 export const eliminarMensaje = async (id: number) => {
   const { error } = await supabase
     .from('mensajes_contacto')
