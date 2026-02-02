@@ -1,10 +1,10 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '../../lib/supabase'
 
-// Definimos el tipo de dato
+// Definimos el tipo de dato (AGREGADO 'logo')
 interface Contenido {
   id: string
-  seccion: 'banner' | 'oferta' | 'video'
+  seccion: 'banner' | 'oferta' | 'video' | 'logo'
   url: string
 }
 
@@ -19,7 +19,6 @@ export default function AdminBanners() {
   }, [])
 
   const fetchContenido = async () => {
-    // CAMBIO: Ahora leemos de 'contenido_home'
     const { data } = await supabase
       .from('contenido_home') 
       .select('*')
@@ -36,11 +35,24 @@ export default function AdminBanners() {
     setUploading(true)
     const file = e.target.files[0]
     const fileExt = file.name.split('.').pop()
-    
-    // CAMBIO: Estructura de carpetas -> contenido (bucket) / contenido_home (carpeta) / banner (subcarpeta)
     const fileName = `contenido_home/${seccion}/${Date.now()}.${fileExt}`
 
     try {
+      // --- LÓGICA AGREGADA PARA EL LOGO ---
+      // Si la sección es 'logo', primero borramos el logo anterior si existe,
+      // para que solo haya uno y no se acumulen archivos basura.
+      if (seccion === 'logo') {
+        const logoAnterior = contenidos.find(c => c.seccion === 'logo')
+        if (logoAnterior) {
+           // 1. Borrar del Storage
+           const pathPart = logoAnterior.url.split('/contenido/')[1]
+           if (pathPart) await supabase.storage.from('contenido').remove([pathPart])
+           // 2. Borrar de la BD
+           await supabase.from('contenido_home').delete().eq('id', logoAnterior.id)
+        }
+      }
+      // ------------------------------------
+
       // 1. Subir al Storage (Bucket 'contenido')
       const { error: uploadError } = await supabase.storage
         .from('contenido') 
@@ -54,7 +66,6 @@ export default function AdminBanners() {
         .getPublicUrl(fileName)
 
       // 3. Guardar referencia en Base de Datos
-      // CAMBIO: Ahora guardamos en 'contenido_home'
       const { error: dbError } = await supabase
         .from('contenido_home')
         .insert({ seccion, url: publicUrl })
@@ -80,15 +91,12 @@ export default function AdminBanners() {
 
     try {
       // 1. Borrar del Storage
-      // Extraemos la ruta relativa después del nombre del bucket
       const pathPart = url.split('/contenido/')[1] 
-      
       if (pathPart) {
         await supabase.storage.from('contenido').remove([pathPart])
       }
 
       // 2. Borrar de la Base de Datos
-      // CAMBIO: Borramos de 'contenido_home'
       const { error } = await supabase
         .from('contenido_home')
         .delete()
@@ -105,92 +113,128 @@ export default function AdminBanners() {
   }
 
   // Filtros para mostrar en secciones
+  const logoActual = contenidos.find(c => c.seccion === 'logo') // (AGREGADO FILTRO LOGO)
   const banners = contenidos.filter(c => c.seccion === 'banner')
   const ofertas = contenidos.filter(c => c.seccion === 'oferta')
   const videos = contenidos.filter(c => c.seccion === 'video')
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
-      <h1 className="text-3xl font-bold text-gray-800 mb-2">Gestión de Contenido Home</h1>
-      <p className="text-gray-500 mb-8">Administra los banners, imágenes de ofertas y videos promocionales.</p>
+    <div className="p-4 md:p-6 max-w-7xl mx-auto">
+      
+      <h1 className="text-2xl md:text-3xl font-bold text-gray-800 mb-2">Gestión de Contenido Home</h1>
+      <p className="text-sm md:text-base text-gray-500 mb-8">Administra el Logo, banners, imágenes de ofertas y videos promocionales.</p>
 
       {uploading && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center">
-          <div className="bg-white p-6 rounded-xl shadow-xl flex items-center gap-3">
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-xl shadow-xl flex items-center gap-3 w-full max-w-sm justify-center">
             <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
             <span className="font-bold text-gray-700">Subiendo archivo...</span>
           </div>
         </div>
       )}
 
-      {/* --- SECCIÓN 1: BANNERS PRINCIPALES --- */}
-      <section className="mb-12 bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-        <div className="flex justify-between items-center mb-6">
-          <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
-            🖼️ Banner Principal (Carrusel)
+      {/* --- NUEVA SECCIÓN AGREGADA: LOGO DE LA TIENDA --- */}
+      <section className="mb-8 bg-blue-50 p-4 md:p-6 rounded-2xl shadow-sm border border-blue-100">
+        <div className="flex flex-col sm:flex-row justify-between items-center gap-6">
+            <div>
+                <h2 className="text-lg md:text-xl font-bold text-blue-900 flex items-center gap-2">
+                  💎 Logo Principal
+                </h2>
+                <p className="text-sm text-gray-600 mt-1">Este es el logo que aparece en la barra superior (Header) de toda la tienda.</p>
+            </div>
+            
+            <div className="flex items-center gap-6">
+                {/* Previsualización del Logo Actual */}
+                <div className="bg-white p-2 rounded-lg border border-gray-200 shadow-sm">
+                    {logoActual ? (
+                        <img src={logoActual.url} alt="Logo Actual" className="h-12 md:h-16 w-auto object-contain" />
+                    ) : (
+                        <span className="text-xs text-gray-400 font-mono px-2 py-4 block">Sin Logo Personalizado</span>
+                    )}
+                </div>
+
+                {/* Botón de subir/cambiar */}
+                <label className="cursor-pointer bg-blue-700 text-white px-5 py-3 rounded-xl font-bold hover:bg-blue-800 transition shadow-md flex items-center gap-2 text-sm md:text-base whitespace-nowrap">
+                  <span>{logoActual ? 'Cambiar Logo' : 'Subir Logo'}</span>
+                  <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUpload(e, 'logo')} />
+                </label>
+            </div>
+        </div>
+      </section>
+      {/* -------------------------------------------------- */}
+
+
+      {/* --- SECCIÓN 1: BANNERS PRINCIPALES (TODO IGUAL ABAJO) --- */}
+      <section className="mb-8 md:mb-12 bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+        
+        <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+          <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
+            🖼️ Banner Principal
           </h2>
-          <label className="cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition shadow-md flex items-center gap-2">
+          <label className="w-full sm:w-auto cursor-pointer bg-blue-600 text-white px-4 py-2 rounded-lg font-bold hover:bg-blue-700 transition shadow-md flex items-center justify-center gap-2 text-sm md:text-base">
             <span>+ Subir Banner</span>
             <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUpload(e, 'banner')} />
           </label>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
           {banners.map(item => (
             <div key={item.id} className="relative group rounded-xl overflow-hidden shadow-md border border-gray-200">
-              <img src={item.url} alt="Banner" className="w-full h-48 object-cover" />
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+              <img src={item.url} alt="Banner" className="w-full h-40 md:h-48 object-cover" />
+              
+              <div className="absolute inset-0 bg-black/40 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity flex items-center justify-center">
                 <button 
                   onClick={() => handleDelete(item.id, item.url)}
-                  className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:scale-105 transition-transform"
+                  className="bg-red-600 text-white px-4 py-2 rounded-lg font-bold hover:scale-105 transition-transform text-sm shadow-lg"
                 >
                   Eliminar
                 </button>
               </div>
             </div>
           ))}
-          {banners.length === 0 && <p className="text-gray-400 italic col-span-2 text-center py-10">No hay banners subidos.</p>}
+          {banners.length === 0 && <p className="text-gray-400 italic col-span-1 md:col-span-2 text-center py-10 text-sm">No hay banners subidos.</p>}
         </div>
       </section>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
         
         {/* --- SECCIÓN 2: IMÁGENES DE OFERTA --- */}
-        <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+        <section className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
               🏷️ Ofertas (Izquierda)
             </h2>
-            <label className="cursor-pointer bg-green-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-green-700 transition shadow-md">
+            <label className="w-full sm:w-auto cursor-pointer bg-green-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-green-700 transition shadow-md text-center">
               + Subir Imagen
               <input type="file" accept="image/*" className="hidden" onChange={(e) => handleUpload(e, 'oferta')} />
             </label>
           </div>
 
-          <div className="grid grid-cols-2 gap-4">
+          <div className="grid grid-cols-2 gap-3 md:gap-4">
             {ofertas.map(item => (
               <div key={item.id} className="relative group rounded-lg overflow-hidden shadow-sm border border-gray-200 aspect-square">
                 <img src={item.url} alt="Oferta" className="w-full h-full object-cover" />
+                
                 <button 
                   onClick={() => handleDelete(item.id, item.url)}
-                  className="absolute top-2 right-2 bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity shadow-md"
+                  className="absolute top-2 right-2 bg-red-600 text-white w-8 h-8 rounded-full flex items-center justify-center opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity shadow-md z-10"
                 >
                   ✕
                 </button>
               </div>
             ))}
-            {ofertas.length === 0 && <p className="text-gray-400 italic text-center col-span-2 py-8">Sin imágenes de oferta.</p>}
+            {ofertas.length === 0 && <p className="text-gray-400 italic text-center col-span-2 py-8 text-sm">Sin imágenes de oferta.</p>}
           </div>
         </section>
 
         {/* --- SECCIÓN 3: VIDEOS --- */}
-        <section className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100">
-          <div className="flex justify-between items-center mb-6">
-            <h2 className="text-xl font-bold text-gray-800 flex items-center gap-2">
+        <section className="bg-white p-4 md:p-6 rounded-2xl shadow-sm border border-gray-100">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+            <h2 className="text-lg md:text-xl font-bold text-gray-800 flex items-center gap-2">
               🎥 Videos (Derecha)
             </h2>
-            <label className="cursor-pointer bg-purple-600 text-white px-3 py-1.5 rounded-lg text-sm font-bold hover:bg-purple-700 transition shadow-md">
-              + Subir Video (MP4)
+            <label className="w-full sm:w-auto cursor-pointer bg-purple-600 text-white px-3 py-2 rounded-lg text-sm font-bold hover:bg-purple-700 transition shadow-md text-center">
+              + Subir MP4
               <input type="file" accept="video/mp4,video/webm" className="hidden" onChange={(e) => handleUpload(e, 'video')} />
             </label>
           </div>
@@ -198,16 +242,17 @@ export default function AdminBanners() {
           <div className="space-y-4">
             {videos.map(item => (
               <div key={item.id} className="relative group bg-gray-900 rounded-lg overflow-hidden shadow-md">
-                <video src={item.url} className="w-full h-40 object-contain bg-black" controls />
+                <video src={item.url} className="w-full h-48 md:h-56 object-contain bg-black" controls />
+                
                 <button 
                   onClick={() => handleDelete(item.id, item.url)}
-                  className="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 text-xs font-bold rounded shadow-md opacity-0 group-hover:opacity-100 transition-opacity"
+                  className="absolute top-2 right-2 bg-red-600 text-white px-3 py-1 text-xs font-bold rounded shadow-md opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity"
                 >
-                  Eliminar Video
+                  Eliminar
                 </button>
               </div>
             ))}
-            {videos.length === 0 && <p className="text-gray-400 italic text-center py-8">Sin videos promocionales.</p>}
+            {videos.length === 0 && <p className="text-gray-400 italic text-center py-8 text-sm">Sin videos promocionales.</p>}
           </div>
         </section>
 

@@ -22,13 +22,16 @@ import AdminProductos from '../admin/pages/AdminProductos'
 import AdminOfertas from '../admin/pages/AdminOfertas'
 import AdminBanners from '../admin/pages/AdminBanners'
 import AdminNosotros from '../admin/pages/AdminNosotros' 
-import AdminTiendas from '../admin/pages/AdminTiendas' // ✅ IMPORTADO
+import AdminTiendas from '../admin/pages/AdminTiendas'
 import AdminContactanos from '../admin/pages/AdminContactanos'
 
+// ✅ AQUÍ ESTÁ EL CAMBIO: Importamos el archivo real que creamos
+import AdminPedidos from '../admin/pages/AdminPedidos'
+
 /* ========================================================================
-   3. COMPONENTES PLACEHOLDER (TEMPORALES)
+   3. COMPONENTES PLACEHOLDER
+   (He borrado el const AdminPedidos que tenías aquí para que no estorbe)
    ======================================================================== */
-const AdminPedidos = () => <div className="p-10">🚧 Gestión de Pedidos (En construcción)</div>
 
 function AppContent() {
   const location = useLocation();
@@ -71,13 +74,13 @@ function AppContent() {
               
               {/* Módulos de gestión Operativa */}
               <Route path="productos" element={<AdminProductos />} />
-              <Route path="pedidos" element={<AdminPedidos />} />
+              <Route path="pedidos" element={<AdminPedidos />} /> {/* Ahora cargará la tabla real */}
               <Route path="ofertas" element={<AdminOfertas />} />
 
               {/* Módulos de gestión Web */}
               <Route path="banners" element={<AdminBanners />} />
               <Route path="nosotros" element={<AdminNosotros />} />
-              <Route path="tiendas" element={<AdminTiendas />} /> {/* ✅ RUTA AGREGADA */}
+              <Route path="tiendas" element={<AdminTiendas />} />
               <Route path="contacto" element={<AdminContactanos />} />
              
           </Route>

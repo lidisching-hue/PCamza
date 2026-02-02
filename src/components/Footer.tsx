@@ -1,37 +1,38 @@
 import { Link } from 'react-router-dom'
 
 function Footer() {
+  const year = new Date().getFullYear()
+
   return (
-    <footer className="relative">
+    <footer className="relative w-full">
       
       {/* Contenido principal con Degradado Moderno */}
-      {/* El degradado va de un azul muy oscuro (slate/blue) hacia el rojo de la marca */}
-      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-red-900 text-white py-14 relative overflow-hidden">
+      <div className="bg-gradient-to-br from-slate-900 via-blue-950 to-red-900 text-white pt-12 pb-24 md:py-16 relative overflow-hidden">
         
-        {/* Efecto de luz opcional en el fondo para profundidad */}
+        {/* Efecto de luz opcional en el fondo */}
         <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-white/10 to-transparent"></div>
 
-        <div className="max-w-7xl mx-auto px-4 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 relative z-10">
+        <div className="max-w-7xl mx-auto px-5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-10 md:gap-8 relative z-10">
           
           {/* 1. Logo y Redes Sociales */}
-          <div className="space-y-6">
-            <div className="flex items-center gap-2 group cursor-pointer">
+          <div className="space-y-5">
+            <div className="flex items-center gap-2 group cursor-pointer select-none">
               <div className="bg-red-600 text-white font-bold px-3 py-2 rounded-lg text-xl shadow-lg group-hover:bg-red-500 transition-colors">
                 🛒
               </div>
               <span className="text-2xl font-bold tracking-wide">PCAMZA</span>
             </div>
-            <p className="text-gray-300 text-sm italic border-l-2 border-red-500 pl-3">
+            <p className="text-gray-300 text-sm italic border-l-2 border-red-500 pl-3 leading-relaxed">
               "Donde comprar, es ahorrar"
             </p>
             
-            {/* Redes Sociales con Iconos SVG */}
+            {/* Redes Sociales */}
             <div className="flex gap-4 pt-2">
               <a
                 href="https://www.facebook.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white/10 p-2 rounded-full hover:bg-blue-600 hover:scale-110 transition-all duration-300"
+                className="bg-white/10 p-2.5 rounded-full hover:bg-blue-600 hover:-translate-y-1 transition-all duration-300"
                 aria-label="Facebook"
               >
                 <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
@@ -42,7 +43,7 @@ function Footer() {
                 href="https://www.instagram.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-white/10 p-2 rounded-full hover:bg-pink-600 hover:scale-110 transition-all duration-300"
+                className="bg-white/10 p-2.5 rounded-full hover:bg-pink-600 hover:-translate-y-1 transition-all duration-300"
                 aria-label="Instagram"
               >
                 <svg className="w-5 h-5 fill-current" viewBox="0 0 24 24">
@@ -54,15 +55,15 @@ function Footer() {
 
           {/* 2. Nosotros */}
           <div>
-            <h4 className="text-lg font-bold mb-6 text-red-400 border-b border-red-500/30 inline-block pb-2">Nosotros</h4>
-            <ul className="space-y-3">
+            <h4 className="text-lg font-bold mb-5 text-red-400 border-b border-red-500/30 inline-block pb-1">Nosotros</h4>
+            <ul className="space-y-3 text-sm md:text-base">
               <li>
-                <Link to="/quienes-somos" className="text-gray-300 hover:text-white hover:translate-x-1 transition-all inline-block">
+                <Link to="/quienes-somos" className="text-gray-300 hover:text-white hover:translate-x-1 transition-transform inline-block py-1">
                   Quienes somos
                 </Link>
               </li>
               <li>
-                <Link to="/tiendas" className="text-gray-300 hover:text-white hover:translate-x-1 transition-all inline-block">
+                <Link to="/tiendas" className="text-gray-300 hover:text-white hover:translate-x-1 transition-transform inline-block py-1">
                   Tiendas
                 </Link>
               </li>
@@ -71,17 +72,16 @@ function Footer() {
 
           {/* 3. Atención al cliente */}
           <div>
-            <h4 className="text-lg font-bold mb-6 text-red-400 border-b border-red-500/30 inline-block pb-2">Atención al cliente</h4>
-            <ul className="space-y-3">
-              <li><Link to="/legales" className="text-gray-300 hover:text-white hover:translate-x-1 transition-all inline-block">Legales</Link></li>
-              <li><a href="#" className="text-gray-300 hover:text-white hover:translate-x-1 transition-all inline-block">Revisa tu boleta/factura</a></li>
-              <li><a href="#" className="text-gray-300 hover:text-white hover:translate-x-1 transition-all inline-block">Canal de denuncias</a></li>
-              <li><Link to="/comunicados" className="text-gray-300 hover:text-white hover:translate-x-1 transition-all inline-block">Comunicados</Link></li>
-              <li className="pt-4">
-                <a href="#" className="inline-block hover:brightness-110 transition-all">
-                   {/* Botón de Libro de Reclamaciones estilizado */}
-                  <div className="bg-white rounded-lg p-1">
-                    <img src="https://www.sutran.gob.pe/wp-content/uploads/2022/11/logo_libro_reclam.jpg" alt="Libro de Reclamaciones" className="h-8 md:h-10 object-contain rounded" />
+            <h4 className="text-lg font-bold mb-5 text-red-400 border-b border-red-500/30 inline-block pb-1">Atención al cliente</h4>
+            <ul className="space-y-3 text-sm md:text-base">
+              <li><Link to="/legales" className="text-gray-300 hover:text-white hover:translate-x-1 transition-transform inline-block py-1">Legales</Link></li>
+              <li><a href="#" className="text-gray-300 hover:text-white hover:translate-x-1 transition-transform inline-block py-1">Revisa tu boleta/factura</a></li>
+              <li><a href="#" className="text-gray-300 hover:text-white hover:translate-x-1 transition-transform inline-block py-1">Canal de denuncias</a></li>
+              <li><Link to="/comunicados" className="text-gray-300 hover:text-white hover:translate-x-1 transition-transform inline-block py-1">Comunicados</Link></li>
+              <li className="pt-3">
+                <a href="#" className="inline-block hover:opacity-90 transition-opacity">
+                  <div className="bg-white rounded-lg p-1.5 shadow-md max-w-[140px]">
+                    <img src="https://www.sutran.gob.pe/wp-content/uploads/2022/11/logo_libro_reclam.jpg" alt="Libro de Reclamaciones" className="h-8 md:h-9 object-contain w-full" />
                   </div>
                 </a>
               </li>
@@ -90,31 +90,31 @@ function Footer() {
 
           {/* 4. Canal Institucional */}
           <div>
-            <h4 className="text-lg font-bold mb-6 text-red-400 border-b border-red-500/30 inline-block pb-2">Ventas Institucionales</h4>
+            <h4 className="text-lg font-bold mb-5 text-red-400 border-b border-red-500/30 inline-block pb-1">Ventas Institucionales</h4>
             <ul className="space-y-4">
               <li>
-                <a href="https://api.whatsapp.com/send?phone=+51912822543" target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-gray-300 hover:text-green-400 transition-colors group">
-                  <div className="bg-white/10 p-2 rounded-full group-hover:bg-green-500/20 transition-colors">
-                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
-                    </svg>
+                <a href="https://api.whatsapp.com/send?phone=+51912822543" target="_blank" rel="noopener noreferrer" className="flex items-start gap-3 text-gray-300 hover:text-green-400 transition-colors group p-1 -ml-1">
+                  <div className="bg-white/10 p-2 rounded-full group-hover:bg-green-500/20 transition-colors shrink-0">
+                      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
+                       <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 1.5H8.25A2.25 2.25 0 006 3.75v16.5a2.25 2.25 0 002.25 2.25h7.5A2.25 2.25 0 0018 20.25V3.75a2.25 2.25 0 00-2.25-2.25H13.5m-3 0V3h3V1.5m-3 0h3m-3 18.75h3" />
+                     </svg>
                   </div>
                   <div>
-                    <span className="block text-xs text-gray-400 font-semibold uppercase">WhatsApp Ventas</span>
-                    <span className="font-medium">+51 972 157 530</span>
+                    <span className="block text-[10px] md:text-xs text-gray-400 font-semibold uppercase">WhatsApp Ventas</span>
+                    <span className="font-medium text-sm md:text-base">+51 972 157 530</span>
                   </div>
                 </a>
               </li>
               <li>
-                <a href="mailto:ventaspecamza@gmail.com" className="flex items-start gap-3 text-gray-300 hover:text-red-400 transition-colors group">
-                  <div className="bg-white/10 p-2 rounded-full group-hover:bg-red-500/20 transition-colors">
+                <a href="mailto:ventaspecamza@gmail.com" className="flex items-start gap-3 text-gray-300 hover:text-red-400 transition-colors group p-1 -ml-1">
+                  <div className="bg-white/10 p-2 rounded-full group-hover:bg-red-500/20 transition-colors shrink-0">
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5">
                       <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
                     </svg>
                   </div>
-                  <div className="overflow-hidden">
-                    <span className="block text-xs text-gray-400 font-semibold uppercase">Correo</span>
-                    <span className="font-medium truncate block">ventaspecamza@gmail.com</span>
+                  <div className="min-w-0">
+                    <span className="block text-[10px] md:text-xs text-gray-400 font-semibold uppercase">Correo</span>
+                    <span className="font-medium text-sm md:text-base break-words hover:underline">ventaspecamza@gmail.com</span>
                   </div>
                 </a>
               </li>
@@ -122,43 +122,41 @@ function Footer() {
           </div>
 
         </div>
-      </div>
 
-      {/* Barra inferior - Copyright con fondo semi-transparente oscuro */}
-      <div className="bg-black/40 backdrop-blur-sm absolute bottom-0 w-full border-t border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-4">
-          <div className="flex flex-col md:flex-row justify-between items-center gap-4 text-xs text-gray-400">
-            <div className="flex items-center gap-2">
-              <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-5 h-5 text-red-500">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
-              </svg>
-              <span>Perú</span>
-            </div>
-            <div className="text-center md:text-right">
-              <p>
-                © {new Date().getFullYear()} <span className="text-white font-semibold">PCAMZA</span>. Todos los derechos reservados.
-              </p>
+        {/* Barra inferior - Copyright */}
+        <div className="bg-black/40 backdrop-blur-sm absolute bottom-0 w-full border-t border-white/10">
+          <div className="max-w-7xl mx-auto px-4 py-3 md:py-4">
+            <div className="flex flex-col md:flex-row justify-between items-center gap-2 md:gap-4 text-xs text-gray-400">
+              <div className="flex items-center gap-2 order-2 md:order-1">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor" className="w-4 h-4 text-red-500">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 21h16.5M4.5 3h15M5.25 3v18m13.5-18v18M9 6.75h1.5m-1.5 3h1.5m-1.5 3h1.5m3-6H15m-1.5 3H15m-1.5 3H15M9 21v-3.375c0-.621.504-1.125 1.125-1.125h3.75c.621 0 1.125.504 1.125 1.125V21" />
+                </svg>
+                <span>Las Lomas - Piura, Perú</span>
+              </div>
+              <div className="text-center md:text-right order-1 md:order-2">
+                <p>
+                  © {year} <span className="text-white font-semibold">PCAMZA</span>. Todos los derechos reservados.
+                </p>
+              </div>
             </div>
           </div>
         </div>
+
       </div>
 
-{/* Botón flotante de WhatsApp con Texto */}
-<a
-  href="https://api.whatsapp.com/send?phone=51994166419&text=Hola,%20tengo%20una%20consulta%20sobre%20sus%20productos."
-  target="_blank"
-  rel="noopener noreferrer"
-  className="fixed bottom-6 right-6 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-full px-5 py-3 shadow-2xl transition-all hover:scale-105 z-50 flex items-center gap-3 group animate-bounce-slow"
-  aria-label="Contactar por WhatsApp"
->
-  {/* Icono */}
-  <svg viewBox="0 0 24 24" fill="currentColor" className="w-8 h-8">
-    <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zM12.05 20.21c-1.5 0-2.97-.39-4.27-1.14l-.3-.18-3.15.83.84-3.07-.19-.31a8.154 8.154 0 01-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.183 8.183 0 012.41 5.83c.02 4.54-3.68 8.23-8.14 8.23zm4.51-6.17c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.13-.14.17-.24.26-.4.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.39 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.07-.11-.24-.18-.48-.3z"/>
-  </svg>
-  
-  {/* Texto agregado */}
-  <span className="font-bold text-sm hidden sm:block">¿Consultas?</span>
-</a>
+      {/* Botón flotante de WhatsApp con Texto */}
+      <a
+        href="https://api.whatsapp.com/send?phone=51994166419&text=Hola,%20tengo%20una%20consulta%20sobre%20sus%20productos."
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-4 right-4 md:bottom-6 md:right-6 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-full px-4 py-3 md:px-5 shadow-2xl transition-all hover:scale-105 z-50 flex items-center gap-2 group animate-bounce-slow"
+        aria-label="Contactar por WhatsApp"
+      >
+        <svg viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 md:w-8 md:h-8">
+          <path d="M12.04 2c-5.46 0-9.91 4.45-9.91 9.91 0 1.75.46 3.45 1.32 4.95L2.05 22l5.25-1.38c1.45.79 3.08 1.21 4.74 1.21 5.46 0 9.91-4.45 9.91-9.91 0-2.65-1.03-5.14-2.9-7.01A9.816 9.816 0 0012.04 2zM12.05 20.21c-1.5 0-2.97-.39-4.27-1.14l-.3-.18-3.15.83.84-3.07-.19-.31a8.154 8.154 0 01-1.26-4.38c0-4.54 3.7-8.24 8.24-8.24 2.2 0 4.27.86 5.82 2.42a8.183 8.183 0 012.41 5.83c.02 4.54-3.68 8.23-8.14 8.23zm4.51-6.17c-.25-.12-1.47-.72-1.69-.81-.23-.08-.39-.12-.56.12-.17.25-.64.81-.78.97-.14.17-.29.19-.54.06-.25-.12-1.05-.39-1.99-1.23-.74-.66-1.23-1.47-1.38-1.72-.14-.25-.02-.38.11-.51.11-.11.25-.29.37-.43.13-.14.17-.24.26-.4.08-.17.04-.31-.02-.43-.06-.12-.56-1.34-.76-1.84-.2-.48-.41-.42-.56-.43h-.48c-.17 0-.43.06-.66.31-.22.25-.86.85-.86 2.07 0 1.22.89 2.39 1.01 2.56.12.17 1.75 2.67 4.23 3.74.59.26 1.05.41 1.41.52.59.19 1.13.16 1.56.1.48-.07 1.47-.6 1.67-1.18.21-.58.21-1.07.14-1.18-.07-.11-.24-.18-.48-.3z"/>
+        </svg>
+        <span className="font-bold text-xs md:text-sm hidden sm:block">¿Consultas?</span>
+      </a>
     </footer>
   )
 }

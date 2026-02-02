@@ -13,7 +13,7 @@ function Productos() {
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>('Todas')
 
   // 1. OBTENER PARAMETROS DE BÚSQUEDA
-  const [searchParams] = useSearchParams()
+  const [searchParams, setSearchParams] = useSearchParams()
   const searchQuery = searchParams.get('search') || '' 
 
   useEffect(() => {
@@ -32,14 +32,13 @@ function Productos() {
     setLoading(false)
   }
 
-  // 2. EXTRAER CATEGORÍAS ÚNICAS AUTOMÁTICAMENTE
-  // Esto revisa todos tus productos y crea una lista limpia de categorías disponibles
+  // 2. EXTRAER CATEGORÍAS ÚNICAS
   const categorias = useMemo(() => {
     const cats = new Set(productos.map(p => p.categoria).filter(Boolean))
     return ['Todas', ...Array.from(cats)].sort()
   }, [productos])
 
-  // 3. LÓGICA DE FILTRADO (Busqueda + Categoría)
+  // 3. LÓGICA DE FILTRADO
   const productosFiltrados = productos.filter(producto => {
     // A. Filtro por Categoría
     const coincideCategoria = 
@@ -48,12 +47,14 @@ function Productos() {
 
     if (!coincideCategoria) return false
 
-    // B. Filtro por Buscador (Texto)
+    // B. Filtro por Buscador
     if (!searchQuery) return true 
 
     const termino = searchQuery.toLowerCase()
-    const precioStr = producto.precio.toString()
+    // Convertimos precio a string para buscar por número
+    const precioStr = producto.precio?.toString() || ''
     
+    // Validamos que los campos existan antes de usar toLowerCase()
     const nombre = producto.nombre?.toLowerCase() || ''
     const descripcion = producto.descripcion?.toLowerCase() || ''
     const marca = producto.marca?.toLowerCase() || ''
@@ -71,59 +72,69 @@ function Productos() {
     )
   })
 
+  // Función para limpiar filtros
+  const limpiarFiltros = () => {
+    setCategoriaSeleccionada('Todas')
+    setSearchParams({}) // Esto limpia el ?search= de la URL
+  }
+
   return (
-    <div className="min-h-screen bg-gray-50 font-sans">
+    <div className="min-h-screen bg-gray-50 font-sans flex flex-col">
       <Header />
 
-      {/* --- SECCIÓN PRINCIPAL CON LAYOUT DE 2 COLUMNAS --- */}
-      <section className="bg-white py-8 min-h-[600px]">
+      {/* --- SECCIÓN PRINCIPAL --- */}
+      <section className="bg-white py-6 md:py-8 flex-grow min-h-[600px]">
         <div className="max-w-7xl mx-auto px-4">
           
           {/* HEADER DE LA PÁGINA */}
-          <div className="flex flex-col md:flex-row justify-between items-end mb-8 border-b border-gray-100 pb-6 gap-4">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 md:mb-8 border-b border-gray-100 pb-4 md:pb-6 gap-4">
             <div>
-               <h2 className="text-3xl font-bold text-gray-800">Nuestros Productos</h2>
+               <h2 className="text-2xl md:text-3xl font-bold text-gray-800">Nuestros Productos</h2>
                {searchQuery && (
-                 <p className="text-sm text-red-600 font-medium mt-1">
-                   Resultados para "{searchQuery}"
-                 </p>
+                 <div className="flex items-center gap-2 mt-2">
+                    <p className="text-sm text-gray-600 font-medium">
+                        Resultados para: <span className="text-red-600 font-bold">"{searchQuery}"</span>
+                    </p>
+                    <button onClick={limpiarFiltros} className="text-xs text-gray-400 underline hover:text-red-500">
+                        (Limpiar)
+                    </button>
+                 </div>
                )}
             </div>
             
             <Link
                 to="/catalogos"
-                className="hidden md:flex px-6 py-2.5 border border-gray-200 text-gray-700 rounded-full font-semibold text-sm hover:bg-gray-50 hover:border-red-200 transition-colors items-center gap-2"
+                className="hidden md:flex px-5 py-2 border border-gray-200 text-gray-700 rounded-full font-semibold text-sm hover:bg-red-50 hover:border-red-200 hover:text-red-600 transition-colors items-center gap-2"
               >
                 <span>Ver Catálogo de Ofertas</span>
                 <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
             </Link>
           </div>
 
-          <div className="flex flex-col lg:flex-row gap-8">
+          <div className="flex flex-col lg:flex-row gap-6 md:gap-8">
             
             {/* --- COLUMNA IZQUIERDA: MENÚ DE CATEGORÍAS --- */}
-            {/* En móvil se ve como scroll horizontal, en PC como barra lateral */}
+            {/* Móvil: Scroll Horizontal | Desktop: Sidebar Vertical */}
             <aside className="w-full lg:w-64 flex-shrink-0">
                 <div className="sticky top-24">
-                    <h3 className="font-bold text-gray-900 mb-4 px-1 hidden lg:block">Categorías</h3>
+                    <h3 className="font-bold text-gray-900 mb-3 px-1 hidden lg:block uppercase text-xs tracking-wider">Categorías</h3>
                     
-                    {/* Contenedor Scrollable para Móviles / Lista Vertical para PC */}
-                    <div className="flex lg:flex-col overflow-x-auto lg:overflow-visible gap-2 pb-4 lg:pb-0 no-scrollbar">
+                    <div className="flex lg:flex-col overflow-x-auto lg:overflow-visible gap-2 pb-2 lg:pb-0 scrollbar-hide">
                         {categorias.map((cat: any) => (
                             <button
                                 key={cat}
                                 onClick={() => setCategoriaSeleccionada(cat)}
                                 className={`
-                                    whitespace-nowrap px-4 py-2.5 rounded-lg text-sm font-medium transition-all text-left flex justify-between items-center group
+                                    whitespace-nowrap px-4 py-2 rounded-lg text-sm font-medium transition-all text-left flex justify-between items-center group border lg:border-none
                                     ${categoriaSeleccionada === cat 
-                                        ? 'bg-red-600 text-white shadow-md shadow-red-200' 
-                                        : 'bg-gray-50 text-gray-600 hover:bg-gray-100 hover:text-gray-900'}
+                                        ? 'bg-red-600 text-white border-red-600 shadow-md shadow-red-200' 
+                                        : 'bg-white lg:bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 hover:text-gray-900'}
                                 `}
                             >
                                 <span>{cat}</span>
-                                {/* Contador de productos (Opcional) */}
+                                {/* Contador (Solo visible en desktop para no saturar móvil) */}
                                 {cat !== 'Todas' && (
-                                    <span className={`text-[10px] ml-2 px-2 py-0.5 rounded-full ${categoriaSeleccionada === cat ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'}`}>
+                                    <span className={`hidden lg:inline-block text-[10px] ml-2 px-2 py-0.5 rounded-full ${categoriaSeleccionada === cat ? 'bg-white/20 text-white' : 'bg-gray-200 text-gray-500 group-hover:bg-gray-300'}`}>
                                         {productos.filter(p => p.categoria === cat).length}
                                     </span>
                                 )}
@@ -136,36 +147,37 @@ function Productos() {
             {/* --- COLUMNA DERECHA: GRID DE PRODUCTOS --- */}
             <div className="flex-1">
                 
-                {/* Header pequeño de la grilla */}
-                <div className="flex justify-between items-center mb-6">
-                    <span className="text-gray-500 text-sm">Mostrando <strong>{productosFiltrados.length}</strong> productos</span>
-                    {/* Aquí podrías poner un ordenar por precio en el futuro */}
+                {/* Info pequeña sobre resultados */}
+                <div className="flex justify-between items-center mb-4">
+                    <span className="text-gray-500 text-xs md:text-sm">Mostrando <strong>{productosFiltrados.length}</strong> productos</span>
                 </div>
 
                 {loading ? (
                     <div className="flex justify-center py-20">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-red-600"></div>
+                        <div className="animate-spin rounded-full h-10 w-10 md:h-12 md:w-12 border-b-2 border-red-600"></div>
                     </div>
                 ) : (
                     <>
                         {productosFiltrados.length > 0 ? (
-                             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-6">
+                             // Grid: 2 columnas en móvil, 3 en Tablet, 3 o 4 en Desktop
+                             <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-3 gap-4 md:gap-6">
                                 {productosFiltrados.map((producto) => (
                                     <ProductCard key={producto.id} producto={producto} />
                                 ))}
                              </div>
                         ) : (
-                            <div className="text-center py-20 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-                                <div className="text-4xl mb-3">🔍</div>
-                                <h3 className="text-gray-900 font-bold">No se encontraron productos</h3>
-                                <p className="text-gray-500 text-sm mt-1">
-                                    No hay resultados en la categoría <span className="font-bold text-red-500">"{categoriaSeleccionada}"</span> con tu búsqueda.
+                            // Estado Vacío (Empty State)
+                            <div className="text-center py-16 md:py-20 bg-gray-50 rounded-xl border border-dashed border-gray-200">
+                                <div className="text-4xl md:text-5xl mb-3 opacity-50">🔍</div>
+                                <h3 className="text-gray-900 font-bold text-lg">No encontramos lo que buscas</h3>
+                                <p className="text-gray-500 text-sm mt-1 max-w-xs mx-auto">
+                                    No hay resultados en <span className="font-bold text-gray-700">"{categoriaSeleccionada}"</span> para tu búsqueda.
                                 </p>
                                 <button 
-                                    onClick={() => {setCategoriaSeleccionada('Todas'); window.history.replaceState(null, '', '/productos')}}
-                                    className="mt-4 text-red-600 text-sm font-bold hover:underline"
+                                    onClick={limpiarFiltros}
+                                    className="mt-6 px-6 py-2 bg-white border border-gray-300 text-gray-700 text-sm font-semibold rounded-full hover:bg-gray-50 hover:text-red-600 transition-colors shadow-sm"
                                 >
-                                    Limpiar filtros
+                                    Limpiar todos los filtros
                                 </button>
                             </div>
                         )}

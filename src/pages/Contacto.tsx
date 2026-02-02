@@ -69,8 +69,8 @@ function Contacto() {
 
       <main className="flex-grow">
         
-        {/* --- 1. BANNER AJUSTADO (Estilo Unificado) --- */}
-        <div className="relative w-full h-[200px] md:h-[350px] group bg-gray-200">
+        {/* --- 1. BANNER AJUSTADO (Consistente con Quiénes Somos) --- */}
+        <div className="relative w-full h-[250px] md:h-[400px] group bg-gray-200">
             {loadingData ? (
                 <div className="w-full h-full animate-pulse bg-gray-300"></div>
             ) : (
@@ -81,11 +81,11 @@ function Contacto() {
                       alt="Banner Contacto" 
                     />
                     {/* Overlay y Texto Principal */}
-                    <div className="absolute inset-0 bg-black/30 flex flex-col justify-center items-center text-center px-4">
-                        <h1 className="text-4xl md:text-5xl font-extrabold text-white mb-2 drop-shadow-[0_2px_2px_rgba(0,0,0,0.8)] tracking-tight">
+                    <div className="absolute inset-0 bg-black/40 flex flex-col justify-center items-center text-center px-4">
+                        <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-white mb-2 drop-shadow-lg tracking-tight">
                             Contáctanos
                         </h1>
-                        <p className="text-lg md:text-xl text-white font-medium max-w-2xl drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
+                        <p className="text-base sm:text-lg md:text-xl text-white font-medium max-w-xl md:max-w-2xl drop-shadow-md">
                             Estamos aquí para escucharte y resolver tus dudas.
                         </p>
                     </div>
@@ -94,21 +94,21 @@ function Contacto() {
         </div>
 
         {/* --- 2. CONTENIDO PRINCIPAL --- */}
-        <section className="max-w-7xl mx-auto px-4 py-16">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 lg:gap-16">
+        <section className="max-w-7xl mx-auto px-4 py-12 md:py-16">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-16">
             
             {/* COLUMNA IZQUIERDA: DATOS DE CONTACTO */}
             <div className="space-y-8">
               <div>
-                <h2 className="text-3xl font-bold text-gray-800 mb-4 border-l-4 border-red-600 pl-4">
+                <h2 className="text-2xl md:text-3xl font-bold text-gray-800 mb-4 border-l-4 border-red-600 pl-4">
                     {loadingData ? 'Cargando información...' : (info?.titulo || 'Nuestros Canales')}
                 </h2>
-                <p className="text-gray-600 leading-relaxed text-lg">
+                <p className="text-gray-600 leading-relaxed text-base md:text-lg">
                     {loadingData ? '...' : (info?.bajada || 'Utiliza cualquiera de nuestros medios oficiales para comunicarte con nosotros.')}
                 </p>
               </div>
 
-              <div className="grid gap-6">
+              <div className="grid gap-5 md:gap-6">
                 {/* Skeleton Loading para Tarjetas */}
                 {loadingData ? (
                     <>
@@ -118,26 +118,27 @@ function Contacto() {
                 ) : (
                     <>
                         {/* Teléfono */}
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-md transition-shadow group">
-                            <div className="bg-red-50 p-4 rounded-full text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors">
-                                <Phone className="w-6 h-6" />
+                        
+                        <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-md transition-shadow group">
+                            <div className="bg-red-50 p-3 md:p-4 rounded-full text-red-600 group-hover:bg-red-600 group-hover:text-white transition-colors">
+                                <Phone className="w-5 h-5 md:w-6 md:h-6" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-800 text-lg">Llámanos</h3>
-                                <a href={`tel:${info?.telefono}`} className="text-gray-600 font-medium hover:text-red-600 transition-colors text-lg">
+                                <h3 className="font-bold text-gray-800 text-base md:text-lg">Llámanos</h3>
+                                <a href={`tel:${info?.telefono}`} className="text-gray-600 font-medium hover:text-red-600 transition-colors text-base md:text-lg">
                                     {info?.telefono || '---'}
                                 </a>
                             </div>
                         </div>
 
                         {/* Correo */}
-                        <div className="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-md transition-shadow group">
-                            <div className="bg-blue-50 p-4 rounded-full text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
-                                <Mail className="w-6 h-6" />
+                        <div className="bg-white p-5 md:p-6 rounded-2xl shadow-sm border border-gray-100 flex items-start gap-4 hover:shadow-md transition-shadow group">
+                            <div className="bg-blue-50 p-3 md:p-4 rounded-full text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+                                <Mail className="w-5 h-5 md:w-6 md:h-6" />
                             </div>
                             <div>
-                                <h3 className="font-bold text-gray-800 text-lg">Escríbenos</h3>
-                                <a href={`mailto:${info?.email}`} className="text-gray-600 font-medium hover:text-blue-600 transition-colors break-all text-lg">
+                                <h3 className="font-bold text-gray-800 text-base md:text-lg">Escríbenos</h3>
+                                <a href={`mailto:${info?.email}`} className="text-gray-600 font-medium hover:text-blue-600 transition-colors break-all text-base md:text-lg">
                                     {info?.email || '---'}
                                 </a>
                             </div>
@@ -151,13 +152,13 @@ function Contacto() {
                         {info?.direccion && (
                             <div className="flex gap-4 items-start text-gray-700">
                                 <MapPin className="text-red-600 flex-shrink-0 mt-1" size={22}/> 
-                                <span className="font-medium">{info.direccion}</span>
+                                <span className="font-medium text-sm md:text-base">{info.direccion}</span>
                             </div>
                         )}
                         {info?.horario && (
                             <div className="flex gap-4 items-center text-gray-700">
                                 <Clock className="text-red-600 flex-shrink-0" size={22}/> 
-                                <span className="font-medium">{info.horario}</span>
+                                <span className="font-medium text-sm md:text-base">{info.horario}</span>
                             </div>
                         )}
                     </div>
@@ -166,24 +167,25 @@ function Contacto() {
             </div>
 
             {/* COLUMNA DERECHA: FORMULARIO */}
-            <div className="bg-white rounded-3xl shadow-xl p-8 lg:p-10 border border-gray-100 relative overflow-hidden">
+            <div className="bg-white rounded-3xl shadow-xl p-6 md:p-10 border border-gray-100 relative overflow-hidden">
+              {/* Decoración de fondo */}
               <div className="absolute top-0 right-0 -mt-4 -mr-4 w-24 h-24 bg-red-100 rounded-full blur-3xl opacity-50"></div>
               
-              <h3 className="text-2xl font-bold text-gray-800 mb-6 relative z-10">Envíanos un mensaje</h3>
+              <h3 className="text-xl md:text-2xl font-bold text-gray-800 mb-6 relative z-10">Envíanos un mensaje</h3>
               
-              <form ref={formRef} onSubmit={handleSubmit} className="space-y-5 relative z-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <div className="space-y-2">
+              <form ref={formRef} onSubmit={handleSubmit} className="space-y-4 md:space-y-5 relative z-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-5">
+                  <div className="space-y-1.5">
                     <label className="text-sm font-bold text-gray-700 ml-1">Nombre completo</label>
                     <input name="nombre" type="text" required className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all outline-none" placeholder="Tu nombre" />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <label className="text-sm font-bold text-gray-700 ml-1">Correo electrónico</label>
-                    <input name="email" type="email" required className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all outline-none" placeholder="tucorreo@ejemplo.com" />
+                    <input name="email" type="email" required className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all outline-none" placeholder="ejemplo@correo.com" />
                   </div>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label className="text-sm font-bold text-gray-700 ml-1">Asunto</label>
                   <select name="asunto" required className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all outline-none cursor-pointer">
                     <option value="Consulta General">Consulta General</option>
@@ -193,7 +195,7 @@ function Contacto() {
                   </select>
                 </div>
 
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   <label className="text-sm font-bold text-gray-700 ml-1">Mensaje</label>
                   <textarea name="mensaje" rows={4} required className="w-full px-4 py-3 rounded-xl bg-gray-50 border border-gray-200 focus:bg-white focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all outline-none resize-none" placeholder="¿En qué podemos ayudarte?"></textarea>
                 </div>
@@ -201,17 +203,17 @@ function Contacto() {
                 <button 
                   type="submit" 
                   disabled={saving}
-                  className={`w-full py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-200 transition-all transform ${
+                  className={`w-full py-3.5 md:py-4 bg-gradient-to-r from-red-600 to-red-700 text-white font-bold rounded-xl shadow-lg shadow-red-200 transition-all transform ${
                     saving ? 'opacity-70 cursor-wait' : 'hover:scale-[1.02] hover:shadow-xl'
                   }`}
                 >
                   {saving ? (
                     <span className="flex items-center justify-center gap-2">
-                       <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                       </svg>
-                       Enviando...
+                        </svg>
+                        Enviando...
                     </span>
                   ) : 'Enviar Mensaje'}
                 </button>

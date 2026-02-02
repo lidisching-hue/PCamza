@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useCart } from '../hooks/useCart'
-import { Link, useLocation, useNavigate } from 'react-router-dom' // 👈 Importamos useNavigate
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { supabase } from '../lib/supabase'
 import type { User } from '@supabase/supabase-js'
 
@@ -8,56 +8,80 @@ function Header() {
   const { items } = useCart()
   const [isMenuOpen, setIsMenuOpen] = useState(false)
   const [isSearchOpen, setIsSearchOpen] = useState(false)
-  const [searchTerm, setSearchTerm] = useState('') // 👈 Estado para el texto del buscador
+  const [searchTerm, setSearchTerm] = useState('')
   
+  // --- NUEVO: Estado para el logo (Mantiene tu logo original como defecto) ---
+  const [logoUrl, setLogoUrl] = useState('https://i.postimg.cc/Rh0CgnHt/PCAMZALOGO.jpg')
+
   const location = useLocation()
-  const navigate = useNavigate() // 👈 Hook para navegar
+  const navigate = useNavigate()
   const totalItems = items.reduce((acc, item) => acc + item.cantidad, 0)
 
   const [usuario, setUsuario] = useState<User | null>(null)
 
   useEffect(() => {
+    // 1. Lógica de Auth (Mantenida igual)
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUsuario(session?.user ?? null)
     })
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUsuario(session?.user ?? null)
     })
+
+    // 2. NUEVO: Lógica para obtener el logo de la BD
+    const fetchLogo = async () => {
+      try {
+        const { data } = await supabase
+          .from('contenido_home')
+          .select('url')
+          .eq('seccion', 'logo')
+          .order('created_at', { ascending: false }) // Trae el más reciente
+          .limit(1)
+          .single()
+        
+        if (data && data.url) {
+          setLogoUrl(data.url)
+        }
+      } catch (error) {
+        console.error("Error cargando logo:", error)
+      }
+    }
+    fetchLogo()
+
     return () => subscription.unsubscribe()
   }, [])
 
   // --- FUNCIÓN DE BÚSQUEDA ---
   const handleSearch = (e: React.FormEvent) => {
-    e.preventDefault() // Evita recargar la página
+    e.preventDefault()
     if (!searchTerm.trim()) return
 
-    // Redirigir a productos con el parámetro ?search=...
     navigate(`/productos?search=${encodeURIComponent(searchTerm)}`)
     
-    // Cerrar buscadores y menús
     setIsSearchOpen(false)
     setIsMenuOpen(false)
-    setSearchTerm('') // Opcional: limpiar input
+    setSearchTerm('')
   }
 
   return (
     <>
       {/* 1. BARRA SUPERIOR (Top Bar) */}
+      {/* Responsivo: Flex column en móvil (centrado), Flex row en tablet/PC */}
       <div className="bg-[#0a192f] text-white border-b border-white/10">
-        <div className="max-w-7xl mx-auto px-4 py-2.5 flex flex-col sm:flex-row justify-between items-center text-sm gap-2 sm:gap-0">
+        <div className="max-w-7xl mx-auto px-4 py-2 flex flex-col sm:flex-row justify-between items-center text-xs sm:text-sm gap-2 sm:gap-0">
           
           <div className="flex items-center gap-2 opacity-90 hover:opacity-100 transition-opacity">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-red-500">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-4 h-4 text-red-500 shrink-0">
               <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
             </svg>
-            <div className="flex gap-1">
+            <div className="flex flex-wrap justify-center gap-1 text-center">
               <span className="font-semibold text-gray-300">Ubicación:</span>
               <span className="font-light tracking-wide">Las Lomas | Piura</span>
             </div>
           </div>
 
-          <div className="flex items-center gap-5">
-            <span className="text-gray-400 text-xs uppercase tracking-widest hidden sm:inline">Síguenos</span>
+          <div className="flex items-center gap-4 sm:gap-5">
+            <span className="text-gray-400 text-[10px] sm:text-xs uppercase tracking-widest hidden sm:inline">Síguenos</span>
             <div className="flex items-center gap-4">
               <a href="https://web.facebook.com/pcamza/" target="_blank" rel="noopener noreferrer" className="text-white hover:text-blue-400 transition-colors transform hover:scale-110">
                 <svg xmlns="http://www.w3.org/2000/svg" fill="currentColor" viewBox="0 0 24 24" className="w-5 h-5">
@@ -70,10 +94,10 @@ function Header() {
                 </svg>
               </a>
               {usuario && (
-                <div className="flex items-center gap-1 pl-4 border-l border-white/20 ml-1 animate-in fade-in duration-500">
+                <div className="flex items-center gap-1 pl-4 border-l border-white/20 ml-1">
                     <span className="text-[10px] text-gray-400 hidden sm:inline">Hola,</span>
-                    <span className="text-xs font-bold text-white uppercase tracking-wide">
-                        {usuario.user_metadata?.full_name}
+                    <span className="text-xs font-bold text-white uppercase tracking-wide truncate max-w-[80px] sm:max-w-none">
+                        {usuario.user_metadata?.full_name?.split(' ')[0]}
                     </span>
                 </div>
               )}
@@ -83,29 +107,34 @@ function Header() {
       </div>
 
       {/* 2. HEADER PRINCIPAL */}
-      <header className="bg-gradient-to-r from-[#ce1126] via-[#9e0e28] to-[#003366] shadow-xl sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 py-4"> 
-          <div className="flex items-center justify-between">
+      <header className="bg-gradient-to-r from-[#ce1126] via-[#9e0e28] to-[#003366] shadow-xl sticky top-0 z-40">
+        <div className="max-w-7xl mx-auto px-4 py-3 sm:py-4"> 
+          <div className="flex items-center justify-between gap-4">
             
-            {/* Botón menú móvil */}
-            <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="lg:hidden text-white hover:text-gray-200 focus:outline-none">
-               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+            {/* Botón menú móvil (Visible < 1024px) */}
+            <button 
+                onClick={() => setIsMenuOpen(!isMenuOpen)} 
+                className="lg:hidden text-white hover:text-gray-200 focus:outline-none p-1 -ml-2"
+                aria-label="Abrir menú"
+            >
+               <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-7 h-7 sm:w-8 sm:h-8">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25h16.5" />
                </svg>
             </button>
 
-            {/* LOGO */}
-            <Link to="/" className="flex items-center gap-4 group">
-              <div className="bg-white p-1.5 rounded-xl shadow-lg border-2 border-white/30 overflow-hidden transform group-hover:scale-105 transition-transform duration-300">
-                <img src="https://i.postimg.cc/Rh0CgnHt/PCAMZALOGO.jpg" alt="Logo Pcamza" className="h-14 w-auto md:h-16 object-contain rounded-lg" />
+            {/* LOGO (Modificado para usar la variable 'logoUrl') */}
+            <Link to="/" className="flex items-center gap-3 sm:gap-4 group shrink-0">
+              <div className="bg-white p-1 rounded-lg sm:rounded-xl shadow-lg border-2 border-white/30 overflow-hidden transform group-hover:scale-105 transition-transform duration-300">
+                {/* AQUI SE USA EL LOGO OBTENIDO DE LA BD */}
+                <img src={logoUrl} alt="Logo Pcamza" className="h-10 w-auto sm:h-14 md:h-16 object-contain" />
               </div>
               <span className="text-2xl md:text-3xl font-black tracking-wide text-white drop-shadow-lg hidden sm:inline font-sans">
                 PCAMZA
               </span>
             </Link>
 
-            {/* NAVEGACIÓN DESKTOP */}
-            <nav className="hidden lg:flex items-center gap-6">
+            {/* NAVEGACIÓN DESKTOP (Oculta en celular) */}
+            <nav className="hidden lg:flex items-center gap-4 xl:gap-6">
               {[
                 { path: "/", label: "Inicio" },
                 { path: "/QuienesSomos", label: "Quienes somos" },
@@ -114,30 +143,34 @@ function Header() {
                 { path: "/tiendas", label: "Tiendas" },
                 { path: "/contacto", label: "Contacto" },
               ].map((link) => (
-                <Link key={link.path} to={link.path} className="text-gray-100 hover:text-white font-semibold transition-all text-sm uppercase tracking-wide relative group py-2">
+                <Link key={link.path} to={link.path} className="text-gray-100 hover:text-white font-semibold transition-all text-xs xl:text-sm uppercase tracking-wide relative group py-2 whitespace-nowrap">
                   {link.label}
                   <span className="absolute bottom-0 left-0 w-0 h-0.5 bg-white transition-all duration-300 group-hover:w-full"></span>
                 </Link>
               ))}
             </nav>
 
-            {/* ICONOS */}
-            <div className="flex items-center gap-6">
-              {/* Buscador */}
-              <button onClick={() => setIsSearchOpen(!isSearchOpen)} className="text-white hover:text-gray-200 transition-colors transform hover:scale-110 focus:outline-none">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-7 h-7">
+            {/* ICONOS (Buscador y Carrito) */}
+            <div className="flex items-center gap-4 sm:gap-6">
+              {/* Buscador Icono */}
+              <button 
+                onClick={() => setIsSearchOpen(!isSearchOpen)} 
+                className="text-white hover:text-gray-200 transition-colors transform hover:scale-110 focus:outline-none"
+                aria-label="Buscar"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-6 h-6 sm:w-7 sm:h-7">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                 </svg>
               </button>
 
-              {/* Carrito */}
-              <Link to="/carrito" state={{ background: location }} className="relative group flex items-center">
+              {/* Carrito Icono */}
+              <Link to="/carrito" state={{ background: location }} className="relative group flex items-center p-1">
                 <div className="relative">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-8 h-8 text-white group-hover:text-gray-100 transition-colors">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-7 h-7 sm:w-8 sm:h-8 text-white group-hover:text-gray-100 transition-colors">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
                   </svg>
                   {totalItems > 0 && (
-                    <span className="absolute -top-2 -right-2 bg-yellow-400 text-red-900 text-xs font-black rounded-full w-5 h-5 flex items-center justify-center shadow-md animate-bounce border border-red-900">
+                    <span className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-yellow-400 text-red-900 text-[10px] sm:text-xs font-black rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center shadow-md animate-bounce border border-red-900">
                       {totalItems}
                     </span>
                   )}
@@ -146,20 +179,20 @@ function Header() {
             </div>
           </div>
 
-          {/* FORMULARIO DE BÚSQUEDA DESPLEGABLE */}
+          {/* FORMULARIO DE BÚSQUEDA DESPLEGABLE (Se superpone correctamente) */}
           {isSearchOpen && (
-            <div className="mt-4 pb-2 animate-fade-in-down">
-              <form onSubmit={handleSearch} className="relative max-w-3xl mx-auto">
+            <div className="mt-3 sm:mt-4 pb-2 w-full animate-fade-in-down">
+              <form onSubmit={handleSearch} className="relative w-full max-w-3xl mx-auto">
                 <input
                   type="text"
-                  placeholder="Buscar productos en Pcamza..."
-                  className="w-full px-6 py-4 rounded-full border-0 shadow-2xl text-gray-800 placeholder-gray-400 focus:ring-4 focus:ring-blue-400/50 focus:outline-none text-lg"
+                  placeholder="Buscar productos..."
+                  className="w-full px-5 py-3 sm:py-4 rounded-full border-0 shadow-2xl text-gray-800 placeholder-gray-400 focus:ring-4 focus:ring-blue-400/50 focus:outline-none text-base sm:text-lg"
                   autoFocus
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
                 />
-                <button type="submit" className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 transition-colors">
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-6 h-6">
+                <button type="submit" className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-600 transition-colors p-2">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={3} stroke="currentColor" className="w-5 h-5 sm:w-6 sm:h-6">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
                   </svg>
                 </button>
@@ -169,27 +202,30 @@ function Header() {
         </div>
       </header>
 
-      {/* MENÚ MÓVIL */}
+      {/* MENÚ MÓVIL (Overlay completo) */}
       {isMenuOpen && (
         <div className="lg:hidden fixed inset-0 z-50 flex">
-          <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm" onClick={() => setIsMenuOpen(false)}></div>
-          <div className="relative bg-white w-80 h-full overflow-y-auto shadow-2xl flex flex-col animate-slide-in-left">
-            <div className="p-6 bg-gradient-to-r from-red-700 to-blue-900 flex justify-between items-center text-white shadow-md">
-              <span className="text-xl font-bold flex items-center gap-2">MENÚ</span>
-              <button onClick={() => setIsMenuOpen(false)} className="text-white hover:bg-white/10 rounded-full p-1 transition-colors">
-                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-8 h-8">
+          {/* Fondo oscuro al hacer click cierra el menú */}
+          <div className="fixed inset-0 bg-black bg-opacity-70 backdrop-blur-sm transition-opacity" onClick={() => setIsMenuOpen(false)}></div>
+          
+          {/* Panel lateral */}
+          <div className="relative bg-white w-[85%] max-w-sm h-full overflow-y-auto shadow-2xl flex flex-col animate-slide-in-left">
+            <div className="p-5 bg-gradient-to-r from-red-700 to-blue-900 flex justify-between items-center text-white shadow-md">
+              <span className="text-lg font-bold flex items-center gap-2">MENÚ</span>
+              <button onClick={() => setIsMenuOpen(false)} className="text-white hover:bg-white/10 rounded-full p-2 transition-colors">
+                <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-6 h-6">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
             
-            {/* Buscador móvil */}
+            {/* Buscador interno del menú móvil */}
             <div className="p-4 bg-gray-50 border-b">
               <form onSubmit={handleSearch} className="relative">
                  <input 
                    type="text" 
-                   placeholder="Buscar..." 
-                   className="w-full p-3 pl-10 rounded-lg border border-gray-200 outline-none focus:border-red-500"
+                   placeholder="¿Qué estás buscando?" 
+                   className="w-full p-3 pl-10 rounded-lg border border-gray-200 outline-none focus:border-red-500 shadow-sm text-sm"
                    value={searchTerm}
                    onChange={(e) => setSearchTerm(e.target.value)}
                  />
@@ -202,7 +238,7 @@ function Header() {
                 { path: "/", label: "Inicio" },
                 { path: "/QuienesSomos", label: "Quienes somos" },
                 { path: "/catalogos", label: "Catálogos de ofertas" },
-                { path: "/productos", label: "Productos Merkat" },
+                { path: "/productos", label: "Productos" },
                 { path: "/tiendas", label: "Nuestras Tiendas" },
                 { path: "/contacto", label: "Contáctanos" },
               ].map((link) => (
@@ -210,24 +246,25 @@ function Header() {
                   key={link.path}
                   to={link.path}
                   onClick={() => setIsMenuOpen(false)}
-                  className="flex items-center justify-between py-4 px-4 text-gray-700 hover:bg-white hover:text-red-700 hover:shadow-sm rounded-xl transition-all font-semibold border border-transparent hover:border-gray-100"
+                  className="flex items-center justify-between py-3 px-4 text-gray-700 hover:bg-white hover:text-red-700 hover:shadow-sm rounded-xl transition-all font-semibold border border-transparent hover:border-gray-200 text-sm"
                 >
                   {link.label}
-                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-5 h-5 text-gray-400">
+                  <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor" className="w-4 h-4 text-gray-400">
                     <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
                   </svg>
                 </Link>
               ))}
             </nav>
+
             {/* Footer menú móvil */}
-            <div className="p-6 bg-white border-t border-gray-200">
+            <div className="p-5 bg-white border-t border-gray-200">
               <div className="flex items-start gap-3 text-sm text-gray-600">
-                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-6 h-6 text-red-600 mt-1">
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" className="w-5 h-5 text-red-600 mt-0.5">
                   <path fillRule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
                 </svg>
                 <div>
-                  <div className="font-bold text-gray-800 text-base">Ubicación Central</div>
-                  <div className="text-gray-500">Las Lomas | Piura</div>
+                  <div className="font-bold text-gray-800">Ubicación Central</div>
+                  <div className="text-gray-500 text-xs">Las Lomas | Piura</div>
                 </div>
               </div>
             </div>

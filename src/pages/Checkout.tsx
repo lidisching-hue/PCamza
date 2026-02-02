@@ -15,7 +15,7 @@ function Checkout() {
   const [direccion, setDireccion] = useState('')
   const [loading, setLoading] = useState(false)
 
-  // 1. Auto-rellenar nombre si hay usuario logueado
+  // 1. Auto-rellenar nombre
   useEffect(() => {
     const checkUser = async () => {
       const { data: { user } } = await supabase.auth.getUser()
@@ -29,9 +29,6 @@ function Checkout() {
 
   // Calculamos el total
   const total = items.reduce((acc, item) => {
-    // Si es oferta, usamos precio_oferta (o preciooferta según tu base anterior)
-    // Si usaste mi SQL nuevo, la propiedad suele ser 'precio_oferta'. 
-    // Aquí hacemos un chequeo seguro:
     const precio = item.precio_oferta || item.preciooferta || item.precio || 0
     return acc + (precio * item.cantidad)
   }, 0)
@@ -50,24 +47,17 @@ function Checkout() {
       const precio = item.precio_oferta || item.preciooferta || item.precio || 0
       const subtotal = (precio * item.cantidad).toFixed(2)
       
-      // DETECTAR SI ES PACK (Combo)
-      // Buscamos si tiene 'oferta_productos' (nuevo) o 'contenido' (viejo)
       const packItems = item.oferta_productos || item.contenido
 
       if (packItems && Array.isArray(packItems) && packItems.length > 0) {
-        // ES UN PACK
         mensaje += `\n🎁 *${item.nombre}* (x${item.cantidad})\n`
-        
         packItems.forEach((subItem: any) => {
-          // Adaptador: En la nueva DB el nombre está dentro de 'producto.nombre'
           const nombreSub = subItem.producto?.nombre || subItem.nombre || 'Producto'
           const cantSub = subItem.cantidad
-          
           mensaje += `   └─ _${cantSub}x ${nombreSub}_\n`
         })
         mensaje += `   *Subtotal:* S/ ${subtotal}\n`
       } else {
-        // ES PRODUCTO INDIVIDUAL
         mensaje += `✅ (${item.cantidad}) ${item.nombre} : S/ ${subtotal}\n`
       }
     })
@@ -101,95 +91,113 @@ function Checkout() {
   }
 
   return (
-    <div className="fixed inset-0 z-[9999] flex justify-end pointer-events-none">
-      <div className="absolute inset-0 bg-black/20 backdrop-blur-[2px] transition-opacity pointer-events-auto" onClick={() => !loading && navigate(-1)}></div>
+    <div className="fixed inset-0 z-[9999] flex justify-end">
+      {/* Backdrop (Fondo oscuro) */}
+      <div 
+        className="absolute inset-0 bg-black/30 backdrop-blur-[2px] transition-opacity" 
+        onClick={() => !loading && navigate(-1)}
+      ></div>
 
-      <div className="relative bg-white w-full max-w-md h-full shadow-2xl flex flex-col transform transition-transform animate-in slide-in-from-right duration-300 pointer-events-auto">
-        {/* HEADER */}
-        <div className="p-6 border-b border-gray-100 flex justify-between items-center bg-white">
+      {/* Drawer (Panel Lateral) */}
+      {/* w-full en móvil para evitar bordes extraños, max-w-md en desktop */}
+      <div className="relative bg-white w-full sm:max-w-md h-full shadow-2xl flex flex-col transform transition-transform animate-in slide-in-from-right duration-300">
+        
+        {/* --- HEADER (Fijo) --- */}
+        <div className="flex-none p-4 md:p-6 border-b border-gray-100 flex justify-between items-center bg-white z-10">
           <div>
-            <h1 className="text-xl font-bold text-gray-800">Finalizar pedido</h1>
-            <p className="text-[11px] text-gray-400 font-bold uppercase tracking-widest">Información de entrega</p>
+            <h1 className="text-lg md:text-xl font-bold text-gray-800">Finalizar pedido</h1>
+            <p className="text-[10px] md:text-[11px] text-gray-400 font-bold uppercase tracking-widest">Información de entrega</p>
           </div>
-          <button onClick={() => navigate(-1)} className="p-2 text-gray-400 hover:text-black bg-gray-50 rounded-full transition-colors">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="p-2 text-gray-400 hover:text-black bg-gray-50 rounded-full transition-colors active:bg-gray-200"
+          >
             <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 20 20" fill="currentColor">
                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
           </button>
         </div>
 
-        {/* CONTENIDO FORMULARIO */}
-        <div className="flex-1 overflow-y-auto p-6 space-y-8 custom-scrollbar">
-          <div className="space-y-5">
-            <h2 className="text-[10px] font-black text-red-600 uppercase tracking-widest">Datos de contacto</h2>
+        {/* --- CONTENIDO SCROLLABLE (Flexible) --- */}
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 custom-scrollbar">
+          
+          {/* Formulario */}
+          <div className="space-y-6">
+            <h2 className="text-[10px] font-black text-red-600 uppercase tracking-widest mb-4">Datos de contacto</h2>
             
-            <div className="space-y-4">
-              <div className="relative">
-                <label className="text-[10px] font-black text-gray-400 absolute -top-2 left-3 bg-white px-1 z-10 uppercase">Nombre Completo *</label>
+            <div className="space-y-5">
+              <div className="relative group">
+                <label className="text-[10px] font-bold text-gray-500 absolute -top-2 left-3 bg-white px-1 z-10 uppercase transition-colors group-focus-within:text-red-500">
+                    Nombre Completo *
+                </label>
                 <input 
                   value={nombre} 
                   onChange={(e) => setNombre(e.target.value)} 
                   placeholder="Ej. Juan Pérez" 
-                  className="w-full border-2 border-gray-100 rounded-xl p-3 outline-none focus:border-red-500 transition-colors font-medium text-sm" 
+                  /* text-base en móvil evita zoom automático en iOS */
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 md:p-3.5 outline-none focus:border-red-500 transition-colors font-medium text-base md:text-sm bg-white" 
                 />
               </div>
 
-              <div className="relative">
-                <label className="text-[10px] font-black text-gray-400 absolute -top-2 left-3 bg-white px-1 z-10 uppercase">Celular / WhatsApp *</label>
+              <div className="relative group">
+                <label className="text-[10px] font-bold text-gray-500 absolute -top-2 left-3 bg-white px-1 z-10 uppercase transition-colors group-focus-within:text-red-500">
+                    Celular / WhatsApp *
+                </label>
                 <input 
                   value={telefono} 
                   onChange={(e) => setTelefono(e.target.value)} 
                   placeholder="987 654 321" 
                   type="tel" 
-                  className="w-full border-2 border-gray-100 rounded-xl p-3 outline-none focus:border-red-500 transition-colors font-medium text-sm" 
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 md:p-3.5 outline-none focus:border-red-500 transition-colors font-medium text-base md:text-sm bg-white" 
                 />
               </div>
 
-              <div className="relative">
-                <label className="text-[10px] font-black text-gray-400 absolute -top-2 left-3 bg-white px-1 z-10 uppercase">Dirección de Entrega</label>
+              <div className="relative group">
+                <label className="text-[10px] font-bold text-gray-500 absolute -top-2 left-3 bg-white px-1 z-10 uppercase transition-colors group-focus-within:text-red-500">
+                    Dirección de Entrega
+                </label>
                 <textarea 
                   value={direccion} 
                   onChange={(e) => setDireccion(e.target.value)} 
-                  placeholder="Dirección exacta y alguna referencia..." 
-                  className="w-full border-2 border-gray-100 rounded-xl p-3 outline-none focus:border-red-500 transition-colors font-medium text-sm h-24 resize-none" 
+                  placeholder="Calle, número, urbanización..." 
+                  className="w-full border-2 border-gray-100 rounded-xl p-3 md:p-3.5 outline-none focus:border-red-500 transition-colors font-medium text-base md:text-sm h-20 md:h-24 resize-none bg-white" 
                 />
               </div>
             </div>
           </div>
 
-          {/* RESUMEN DE COMPRA ELEGANTE */}
-          <div className="bg-gray-50 p-5 rounded-3xl border border-gray-100">
+          {/* Resumen */}
+          <div className="bg-gray-50 p-4 md:p-5 rounded-2xl border border-gray-100">
              <div className="flex items-center gap-2 mb-4">
                 <span className="text-sm">🛒</span>
                 <h3 className="text-[10px] font-black text-gray-500 uppercase tracking-widest">Resumen de tu bolsa</h3>
              </div>
 
-             <div className="space-y-4">
+             <div className="space-y-3 md:space-y-4">
               {items.map(item => {
                 const precio = item.precio_oferta || item.preciooferta || item.precio || 0
-                // Detectamos si es pack para el renderizado visual
                 const packItems = item.oferta_productos || item.contenido
                 const esPack = packItems && Array.isArray(packItems) && packItems.length > 0
 
                 return (
-                  <div key={item.id} className="flex flex-col">
-                    <div className="flex justify-between items-start">
-                      <span className="text-sm font-bold text-gray-800 flex-1 leading-tight">
-                        <span className="text-red-600 mr-1">{item.cantidad}x</span> {item.nombre}
+                  <div key={item.id} className="flex flex-col border-b border-gray-200/50 pb-3 last:border-0 last:pb-0">
+                    <div className="flex justify-between items-start gap-3">
+                      <span className="text-sm font-bold text-gray-800 flex-1 leading-snug">
+                        <span className="text-red-600 whitespace-nowrap mr-1">{item.cantidad}x</span> 
+                        {item.nombre}
                       </span>
-                      <span className="text-sm font-black text-gray-900 ml-2">
+                      <span className="text-sm font-black text-gray-900 whitespace-nowrap">
                         S/ {(precio * item.cantidad).toFixed(2)}
                       </span>
                     </div>
 
-                    {/* Renderizado condicional de items del pack */}
+                    {/* Sub-items del Pack */}
                     {esPack && (
                       <div className="mt-1.5 ml-2 border-l-2 border-red-200 pl-3 space-y-0.5">
                         {packItems.map((c: any, i: number) => {
-                             // Adaptador visual
                              const subNombre = c.producto?.nombre || c.nombre || 'Item'
                              return (
-                                <p key={i} className="text-[10px] text-gray-500 font-medium">
+                                <p key={i} className="text-[10px] md:text-xs text-gray-500 font-medium truncate">
                                   • {c.cantidad}x {subNombre}
                                 </p>
                              )
@@ -201,24 +209,24 @@ function Checkout() {
               })}
              </div>
 
-             <div className="mt-5 pt-4 border-t border-gray-200 flex justify-between items-center">
-                <span className="text-xs font-bold text-gray-400 uppercase">Subtotal</span>
-                <span className="text-lg font-bold text-gray-800">S/ {total.toFixed(2)}</span>
+             <div className="mt-4 pt-3 border-t border-gray-200 flex justify-between items-center">
+                <span className="text-[10px] font-bold text-gray-400 uppercase">Subtotal</span>
+                <span className="text-base font-bold text-gray-800">S/ {total.toFixed(2)}</span>
              </div>
           </div>
         </div>
 
-        {/* BOTÓN FINAL */}
-        <div className="p-8 bg-white border-t border-gray-100 shadow-[0_-10px_30px_rgba(0,0,0,0.05)]">
-          <div className="flex justify-between items-center mb-6">
+        {/* --- FOOTER (Fijo) --- */}
+        <div className="flex-none p-4 md:p-6 bg-white border-t border-gray-100 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] pb-safe">
+          <div className="flex justify-between items-center mb-4">
             <span className="text-gray-400 text-xs font-bold uppercase tracking-widest">Total a pagar</span>
-            <span className="text-3xl font-black text-gray-900 tracking-tighter">S/ {total.toFixed(2)}</span>
+            <span className="text-2xl md:text-3xl font-black text-gray-900 tracking-tighter">S/ {total.toFixed(2)}</span>
           </div>
           
           <button 
             onClick={handleFinalizarCompra} 
             disabled={loading || items.length === 0} 
-            className="w-full bg-[#25D366] text-white py-4 rounded-2xl font-bold text-sm shadow-xl shadow-green-100 hover:bg-[#20bd5a] hover:scale-[1.02] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed active:scale-95"
+            className="w-full bg-[#25D366] text-white py-3.5 md:py-4 rounded-xl md:rounded-2xl font-bold text-sm shadow-lg shadow-green-100 hover:bg-[#20bd5a] active:scale-[0.98] transition-all flex items-center justify-center gap-3 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {loading ? (
               <div className="flex items-center gap-2">

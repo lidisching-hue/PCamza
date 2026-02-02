@@ -11,6 +11,14 @@ import type {
   Tienda 
 } from '../types/Contenido'
 
+// Tipo para la configuración de Ofertas (CORREGIDO PARA EL ERROR DE PAYLOAD)
+export interface ConfigOferta {
+  titulo: string
+  subtitulo: string
+  fecha_fin: string | null // Permitimos null
+  activo: boolean
+}
+
 // Definimos tipos locales si no están en la carpeta types
 export interface InfoContacto {
   id: number;
@@ -207,30 +215,49 @@ export const obtenerAjustesContacto = async (): Promise<Record<string, string>> 
 }
 
 // ==========================================
-// 6. CONFIGURACIÓN OFERTAS (Home)
+// 6. CONFIGURACIÓN OFERTAS (Home) - CORREGIDO
 // ==========================================
 export const obtenerConfigOferta = async () => {
   const { data, error } = await supabase
     .from('config_ofertas')
     .select('*')
+    .limit(1) // Aseguramos traer solo 1
     .single()
   
-  if (error) throw error
+  if (error) {
+    console.warn("No hay configuración de oferta inicial:", error.message)
+    return null
+  }
   return data
 }
 
-export const actualizarConfigOferta = async (datos: {
-  titulo: string, 
-  subtitulo: string, 
-  fecha_fin: string,
-  activo: boolean
-}) => {
-  const { error } = await supabase
+export const actualizarConfigOferta = async (datos: ConfigOferta) => {
+  // 1. Verificamos si ya existe alguna configuración
+  const { data: existente } = await supabase
     .from('config_ofertas')
-    .update(datos)
-    .eq('id', 1)
+    .select('id')
+    .limit(1)
+    .single()
 
-  if (error) throw error
+  let errorQuery = null
+
+  if (existente) {
+    // A. Si existe, actualizamos la fila encontrada
+    const { error } = await supabase
+      .from('config_ofertas')
+      .update(datos)
+      .eq('id', existente.id)
+    errorQuery = error
+  } else {
+    // B. Si NO existe (tabla vacía), insertamos nueva fila
+    const { error } = await supabase
+      .from('config_ofertas')
+      .insert([datos])
+    errorQuery = error
+  }
+
+  if (errorQuery) throw errorQuery
+  return true
 }
 
 // ==========================================

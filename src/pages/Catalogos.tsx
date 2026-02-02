@@ -1,43 +1,51 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
 import type { Oferta } from '../types/Oferta'
+// IMPORTANTE: Traemos exactamente lo mismo que usas en tu Carrito.tsx
 import { useCart } from '../hooks/useCart'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import QRCanal from '../components/qrcanal'
-// 👇 Tu importación original se mantiene intacta
+// Iconos
+import { ShoppingBag, Timer, Sparkles, Zap, ShoppingCart, Flame, Tag, Plus, Minus, Trash2 } from 'lucide-react' 
 import { obtenerOfertasCombos, obtenerConfigOferta } from '../services/contenido.service'
 
+interface OfertaExtendida extends Oferta {
+  es_exclusivo_campana?: boolean;
+  es_cyber?: boolean;
+}
+
 function Catalogos() {
-  const [combos, setCombos] = useState<Oferta[]>([])
-  const { addToCart } = useCart()
+  const [combos, setCombos] = useState<OfertaExtendida[]>([])
   
-  // ESTADO PARA LA CONFIGURACIÓN DINÁMICA
+  // --- CORRECCIÓN CLAVE ---
+  // Usamos la misma estructura que tu Carrito.tsx: 'items', 'increment', 'decrement'
+  const { items, addToCart, increment, decrement, removeFromCart } = useCart() as any
+  
+  // Convertimos items a array seguro por si acaso viene null
+  const cartItems = Array.isArray(items) ? items : [];
+
   const [config, setConfig] = useState({
     titulo: 'Cargando...',
     subtitulo: '',
     fecha_fin: null as string | null,
-    activo: true
+    activo: false 
   })
 
-  // Estado del contador visual
-  const [tiempo, setTiempo] = useState({ horas: 0, minutos: 0, segundos: 0 })
+  const [tiempo, setTiempo] = useState({ dias: 0, horas: 0, minutos: 0, segundos: 0 })
 
   useEffect(() => {
     const cargarDatos = async () => {
       try {
-        // 1. Cargar Combos
         const dataCombos = await obtenerOfertasCombos()
         setCombos(dataCombos)
 
-        // 2. Cargar Configuración del Banner
         const dataConfig = await obtenerConfigOferta()
         if (dataConfig) {
-            setConfig(dataConfig)
-            // Calculamos el tiempo inicial
-            calcularTiempoRestante(dataConfig.fecha_fin)
+           setConfig(dataConfig)
+           if (dataConfig.activo && dataConfig.fecha_fin) {
+             calcularTiempoRestante(dataConfig.fecha_fin)
+           }
         }
-
       } catch (error) {
         console.error("Error cargando datos", error)
       }
@@ -45,233 +53,276 @@ function Catalogos() {
     cargarDatos()
   }, [])
 
-  // Lógica del Temporizador
   useEffect(() => {
-    if (!config.fecha_fin) return;
-
+    if (!config.activo || !config.fecha_fin) return;
     const timer = setInterval(() => {
       calcularTiempoRestante(config.fecha_fin!)
     }, 1000)
-
     return () => clearInterval(timer)
-  }, [config.fecha_fin])
+  }, [config])
 
   const calcularTiempoRestante = (fechaFinString: string) => {
-      const fin = new Date(fechaFinString).getTime()
-      const ahora = new Date().getTime()
-      const diff = fin - ahora
-
+      const diff = new Date(fechaFinString).getTime() - new Date().getTime()
       if (diff > 0) {
         setTiempo({
-          horas: Math.floor(diff / (1000 * 60 * 60)),
+          dias: Math.floor(diff / (1000 * 60 * 60 * 24)),
+          horas: Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60)),
           minutos: Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60)),
           segundos: Math.floor((diff % (1000 * 60)) / 1000)
         })
       } else {
-        setTiempo({ horas: 0, minutos: 0, segundos: 0 })
+        setTiempo({ dias:0, horas: 0, minutos: 0, segundos: 0 })
       }
   }
 
-  // 👇 NUEVA FUNCIÓN: Convierte la fecha fea a "Lunes 12 de Octubre..."
-  const obtenerFechaLegible = () => {
-    if (!config.fecha_fin) return null;
-    const date = new Date(config.fecha_fin);
-    // Formato: "Lunes, 15 de Enero"
-    return date.toLocaleDateString('es-ES', { 
-        weekday: 'long', 
-        day: 'numeric', 
-        month: 'long',
-        hour: '2-digit',
-        minute: '2-digit'
-    });
+  const combosVisibles = combos.filter(combo => {
+    if (config.activo) return true; 
+    return !combo.es_exclusivo_campana && !combo.es_cyber; 
+  });
+
+  const obtenerPrecioReal = (combo: any) => {
+    const suma = combo.oferta_productos?.reduce((acc: number, item: any) => acc + ((item.producto?.precio || item.precio_manual || 0) * item.cantidad), 0) || 0
+    return suma > 0 ? suma : (combo.precio_oferta * 1.2)
   }
 
-  // ... (Tus funciones de cálculo de precio se mantienen igual) ...
-  const calcularDescuento = (normal: number, oferta: number) => {
-    if (!normal || !oferta) return 0
-    return Math.round(((normal - oferta) / normal) * 100)
-  }
-
-  const obtenerPrecioReal = (combo: Oferta) => {
-    const sumaProductos = combo.oferta_productos?.reduce((acc, item) => {
-      return acc + ((item.producto?.precio || 0) * item.cantidad)
-    }, 0) || 0
-    return sumaProductos > 0 ? sumaProductos : (combo.precio_oferta * 1.2)
-  }
-
-  const manejarAgregarCombo = (combo: Oferta) => {
-    const precioRealCalculado = obtenerPrecioReal(combo)
-    const productoParaCarrito: any = {
+  // Objeto idéntico al que espera tu carrito
+  const prepararItemCarrito = (combo: any) => {
+    const precioReal = obtenerPrecioReal(combo)
+    return {
       id: `combo-${combo.id}`,
       nombre: combo.nombre,
-      precio: precioRealCalculado, 
+      precio: precioReal, 
       precio_oferta: combo.precio_oferta, 
-      preciooferta: combo.precio_oferta,
+      preciooferta: combo.precio_oferta, 
       ofertaactiva: true,
-      imagen_url: combo.imagen_url,
+      imagen_url: combo.imagen_url || '', 
       esCombo: true,
-      oferta_productos: combo.oferta_productos?.map(op => ({
-        nombre: op.producto?.nombre || 'Producto Desconocido',
-        cantidad: op.cantidad
+      oferta_productos: combo.oferta_productos?.map((op: any) => ({ 
+        nombre: op.producto?.nombre || op.nombre_manual || 'Producto', 
+        cantidad: op.cantidad 
       }))
     }
-    addToCart(productoParaCarrito)
   }
 
+  const headerTheme = config.activo 
+    ? { 
+        bg: 'bg-gradient-to-r from-violet-900 via-purple-800 to-indigo-900', 
+        accentBadge: 'bg-yellow-300 text-purple-900',
+        textAccent: 'text-yellow-300'
+      }
+    : { 
+        bg: 'bg-gradient-to-r from-gray-900 via-gray-800 to-black', 
+        accentBadge: 'bg-white text-black',
+        textAccent: 'text-white'
+      };
+
   return (
-    <div className="min-h-screen bg-[#f3f4f6] font-sans">
-      <Header />
+    <div className="min-h-screen bg-gray-100 font-sans flex flex-col">
+      <div className="sticky top-0 z-50 w-full bg-white shadow-md">
+         <Header />
+      </div>
 
-      <main>
-        {/* SECCIÓN BANNER Y CONTADOR (DINÁMICA) */}
-        {config.activo && (
-            <section className="relative bg-gradient-to-r from-red-600 via-red-700 to-red-800 text-white overflow-hidden transition-all duration-500">
-            <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 2px, transparent 2.5px)', backgroundSize: '20px 20px' }}></div>
-            
-            <div className="max-w-7xl mx-auto px-4 py-12 relative z-10">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-8">
-                
-                <div className="text-center md:text-left space-y-4">
-                    <span className="bg-yellow-400 text-red-900 font-black px-4 py-1 rounded-full text-sm uppercase tracking-wider inline-block transform -rotate-2 shadow-lg">
-                    ¡Solo por tiempo limitado!
-                    </span>
-                    {/* TÍTULO DINÁMICO */}
-                    <h1 className="text-4xl md:text-6xl lg:text-7xl font-black italic tracking-tighter leading-none text-white drop-shadow-md uppercase">
-                    {config.titulo}
+      <main className="flex-grow flex flex-col">
+        {/* BANNER (Sin cambios visuales) */}
+        <section className={`relative py-6 md:py-12 shadow-2xl ${headerTheme.bg} text-white overflow-hidden shrink-0`}>
+            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'radial-gradient(circle, #ffffff 1px, transparent 1px)', backgroundSize: '20px 20px' }}></div>
+            <div className="max-w-7xl mx-auto px-4 relative z-10 flex flex-col md:flex-row items-center justify-between gap-6">
+                <div className="text-center md:text-left flex-1">
+                    <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] md:text-xs font-black uppercase tracking-widest mb-3 ${headerTheme.accentBadge} shadow-lg`}>
+                        {config.activo ? <Zap size={14} className="fill-current"/> : <Sparkles size={14}/>}
+                        {config.activo ? 'CYBER DAYS' : 'OFERTAS'}
+                    </div>
+                    <h1 className="text-3xl md:text-6xl font-black italic tracking-tighter uppercase leading-[0.9] drop-shadow-xl">
+                        {(!config.activo && (config.titulo === '' || config.titulo === 'Cargando...')) ? 'CATÁLOGO' : config.titulo}
                     </h1>
-                    {/* SUBTÍTULO DINÁMICO */}
-                    <p className="text-xl text-red-100 font-medium">
-                    {config.subtitulo}
+                    <p className="mt-2 text-xs md:text-lg font-medium text-white/80 max-w-xl leading-snug">
+                         {(!config.activo && !config.subtitulo) ? 'Precios bajos siempre.' : config.subtitulo}
                     </p>
                 </div>
-
-                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 shadow-2xl">
-                    <p className="text-center text-red-100 mb-1 font-bold uppercase text-xs tracking-widest">
-                        Cierra Puertas termina el:
-                    </p>
-                    
-                    {/* 👇 AQUÍ MOSTRAMOS LA FECHA BONITA (Lunes, Martes, etc) */}
-                    <p className="text-center text-white font-black text-lg md:text-xl capitalize mb-4 bg-red-900/30 py-1 px-4 rounded-lg border border-red-500/30">
-                        🗓️ {obtenerFechaLegible()}
-                    </p>
-
-                    <div className="flex gap-4 text-center justify-center">
-                    <div>
-                        <div className="bg-white text-red-700 font-black text-4xl w-20 h-20 rounded-xl flex items-center justify-center shadow-lg">
-                        {tiempo.horas.toString().padStart(2, '0')}
-                        </div>
-                        <span className="text-xs mt-1 block">HORAS</span>
+                {config.activo && config.fecha_fin && (
+                    <div className="flex-shrink-0 bg-white/10 backdrop-blur-md border border-white/20 rounded-xl p-3 shadow-2xl transform scale-90 md:scale-100 origin-bottom">
+                         <div className="flex gap-2 text-center justify-center">
+                            {['D', 'H', 'M', 'S'].map((label, i) => {
+                                const val = [tiempo.dias, tiempo.horas, tiempo.minutos, tiempo.segundos][i];
+                                return (
+                                    <div key={label} className="flex flex-col">
+                                        <span className="bg-white text-purple-900 rounded w-8 h-8 flex items-center justify-center font-black">{val}</span>
+                                    </div>
+                                )
+                            })}
+                         </div>
                     </div>
-                    <div className="text-4xl font-bold flex items-center">:</div>
-                    <div>
-                        <div className="bg-white text-red-700 font-black text-4xl w-20 h-20 rounded-xl flex items-center justify-center shadow-lg">
-                        {tiempo.minutos.toString().padStart(2, '0')}
-                        </div>
-                        <span className="text-xs mt-1 block">MIN</span>
-                    </div>
-                    <div className="text-4xl font-bold flex items-center">:</div>
-                    <div>
-                        <div className="bg-yellow-400 text-red-800 font-black text-4xl w-20 h-20 rounded-xl flex items-center justify-center shadow-lg animate-pulse">
-                        {tiempo.segundos.toString().padStart(2, '0')}
-                        </div>
-                        <span className="text-xs mt-1 block">SEG</span>
-                    </div>
-                    </div>
-                </div>
-
-                </div>
+                )}
             </div>
-            
-            <div className="absolute bottom-0 left-0 w-full overflow-hidden leading-none">
-                <svg className="relative block w-[calc(100%+1.3px)] h-[50px]" data-name="Layer 1" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 120" preserveAspectRatio="none">
-                    <path d="M321.39,56.44c58-10.79,114.16-30.13,172-41.86,82.39-16.72,168.19-17.73,250.45-.39C823.78,31,906.67,72,985.66,92.83c70.05,18.48,146.53,26.09,214.34,3V0H0V27.35A600.21,600.21,0,0,0,321.39,56.44Z" className="fill-[#f3f4f6]"></path>
-                </svg>
-            </div>
-            </section>
-        )}
-
-        {/* LISTA DE COMBOS */}
-        <section className="max-w-7xl mx-auto px-4 py-12">
-            {combos.length > 0 ? (
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-              {combos.map((combo) => {
-                const precioNormal = obtenerPrecioReal(combo)
-                const porcentajeDescuento = calcularDescuento(precioNormal, combo.precio_oferta)
-                
-                return (
-                  <div key={combo.id} className="group relative bg-white rounded-2xl shadow-xl overflow-hidden hover:shadow-2xl transition-all hover:-translate-y-1 border-2 border-transparent hover:border-red-500">
-                    <div className="absolute top-0 right-0 z-20">
-                      <div className="bg-yellow-400 text-red-800 font-black text-xs md:text-sm py-2 px-3 rounded-bl-2xl shadow-md">
-                        -{porcentajeDescuento}%
-                      </div>
-                    </div>
-                    <div className="absolute top-3 left-3 z-20">
-                        <span className="bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wide">¡COMBO!</span>
-                    </div>
-                    
-                    <div className="relative h-48 md:h-60 p-4 bg-white flex items-center justify-center overflow-hidden">
-                      {combo.imagen_url ? (
-                        <img src={combo.imagen_url} alt={combo.nombre} className="w-full h-full object-contain transition-transform duration-500 group-hover:scale-110" />
-                      ) : (
-                        <div className="text-gray-300 text-center">
-                          <span className="text-4xl">📷</span>
-                          <p className="text-xs mt-1">Sin imagen</p>
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="p-4 bg-gray-50 border-t border-gray-100">
-                      <h3 className="text-gray-800 font-semibold text-sm md:text-base line-clamp-1 mb-1 leading-tight">{combo.nombre}</h3>
-                      
-                      <p className="text-[10px] text-gray-500 mb-2 line-clamp-2 italic">
-                        Incluye: {combo.oferta_productos?.map(op => `${op.cantidad}x ${op.producto?.nombre}`).join(', ')}
-                      </p>
-
-                      <div className="flex flex-col mb-3">
-                        <span className="text-gray-400 text-xs line-through decoration-red-500 decoration-1">
-                          S/ {precioNormal.toFixed(2)}
-                        </span>
-                        <div className="flex items-baseline gap-1 text-red-600">
-                            <span className="text-sm font-bold">S/</span>
-                            <span className="text-3xl font-black tracking-tighter">{combo.precio_oferta?.toFixed(2)}</span>
-                        </div>
-                      </div>
-                      
-                      <button onClick={() => manejarAgregarCombo(combo)} className="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-2.5 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2.5} stroke="currentColor" className="w-5 h-5">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M2.25 3h1.386c.51 0 .955.343 1.087.835l.383 1.437M7.5 14.25a3 3 0 00-3 3h15.75m-12.75-3h11.218c1.121-2.3 2.1-4.684 2.924-7.138a60.114 60.114 0 00-16.536-1.84M7.5 14.25L5.106 5.272M6 20.25a.75.75 0 11-1.5 0 .75.75 0 011.5 0zm12.75 0a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" />
-                        </svg>
-                        Agregar Combo
-                      </button>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          ) : (
-            <div className="text-center py-20">
-              <div className="text-6xl mb-4">😢</div>
-              <h2 className="text-2xl font-bold text-gray-700">No hay canastas activas</h2>
-              <Link to="/productos" className="mt-6 inline-block bg-red-600 text-white px-6 py-2 rounded-full hover:bg-red-700">Ver catálogo general</Link>
-            </div>
-          )}
         </section>
 
-        {/* FOOTER INFORMATIVO */}
-        <section className="bg-yellow-400 py-6 mb-12">
-            <div className="max-w-7xl mx-auto px-4 flex flex-col md:flex-row items-center justify-center gap-6 text-center md:text-left">
-                <div className="bg-white p-3 rounded-full shadow-sm text-3xl">🚛</div>
-                <div>
-                    <h3 className="text-red-900 font-bold text-lg uppercase">¡Delivery Gratis!</h3>
-                    <p className="text-red-800 text-sm">Por compras mayores a S/ 100 en productos seleccionados.</p>
-                </div>
-                <div className="h-8 w-px bg-red-900/20 hidden md:block"></div>
-                <div className="bg-white p-3 rounded-full shadow-sm text-3xl">💳</div>
-                <div>
-                    <h3 className="text-red-900 font-bold text-lg uppercase">Paga Seguro</h3>
-                    <p className="text-red-800 text-sm">Aceptamos todas las tarjetas y billeteras digitales.</p>
-                </div>
+        {/* CATALOGO */}
+        <section className="max-w-7xl mx-auto px-3 md:px-4 py-6 md:py-12 w-full">
+            <div className="flex items-center justify-between mb-6 pb-4 border-b border-gray-200">
+                <h2 className="text-xl md:text-3xl font-black text-gray-800 flex items-center gap-2 tracking-tight">
+                   {config.activo ? <Flame className="text-orange-500 fill-orange-500" size={20}/> : <Tag className="text-gray-800" size={20}/>}
+                   Catálogo
+                </h2>
+                <span className="bg-gray-900 text-white px-3 py-1 rounded-full text-[10px] md:text-xs font-bold shadow-md">
+                    {combosVisibles.length} Packs
+                </span>
             </div>
+
+            {combosVisibles.length > 0 ? (
+                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-6">
+                {combosVisibles.map((combo) => {
+                    const precioNormal = obtenerPrecioReal(combo)
+                    const isCyber = combo.es_cyber || (config.activo && combo.es_exclusivo_campana);
+                    
+                    // ID EXACTO QUE SE USA EN EL CARRITO
+                    const idProducto = `combo-${combo.id}`;
+                    
+                    // --- LÓGICA DE DETECCIÓN IGUAL AL CARRITO ---
+                    // Buscamos si existe este ID en 'items'
+                    const itemEnCarrito = cartItems.find((item: any) => item.id === idProducto);
+                    const cantidad = itemEnCarrito ? itemEnCarrito.cantidad : 0;
+                    // ---------------------------------------------
+
+                    const cardStyle = isCyber 
+                        ? "bg-slate-900 border-purple-500/50 shadow-purple-500/20 text-white" 
+                        : "bg-white border-gray-100 text-gray-800";
+                    
+                    const priceColor = isCyber ? "text-yellow-400" : "text-gray-900";
+                    const oldPriceColor = isCyber ? "text-slate-500" : "text-gray-400";
+                    
+                    // Lista de productos para descripción
+                    const listaProductos = combo.oferta_productos && combo.oferta_productos.length > 0 
+                                    ? combo.oferta_productos
+                                    : null;
+
+                    return (
+                    <div key={combo.id} className={`group relative rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border overflow-hidden flex flex-col ${cardStyle}`}>
+                        
+                        {/* ETIQUETAS */}
+                        <div className="absolute top-2 left-2 z-20 flex flex-col gap-1">
+                            {isCyber ? (
+                                <span className="flex w-fit items-center gap-1 bg-purple-600 text-white text-[9px] font-black px-1.5 py-0.5 rounded shadow-lg uppercase tracking-wider animate-pulse">
+                                    <Zap size={8} className="fill-white"/> Cyber
+                                </span>
+                            ) : (
+                                <span className="w-fit bg-blue-50 text-blue-700 text-[9px] font-black px-1.5 py-0.5 rounded uppercase tracking-wider border border-blue-100">
+                                    Oferta
+                                </span>
+                            )}
+                        </div>
+                        
+                        {/* PORCENTAJE */}
+                        <div className={`absolute top-0 right-0 px-2 py-1 rounded-bl-xl font-black text-[10px] md:text-xs z-20 shadow-sm ${isCyber ? 'bg-yellow-400 text-black' : 'bg-red-600 text-white'}`}>
+                            -{precioNormal ? Math.round(((precioNormal - combo.precio_oferta) / precioNormal) * 100) : 0}%
+                        </div>
+
+                        {/* IMAGEN */}
+                        <div className={`relative h-28 md:h-40 p-2 flex items-center justify-center transition-colors ${isCyber ? 'bg-slate-800/50' : 'bg-gray-50'}`}>
+                            {combo.imagen_url ? (
+                                <img src={combo.imagen_url} alt={combo.nombre} className="w-full h-full object-contain drop-shadow-md mix-blend-multiply" style={{ mixBlendMode: isCyber ? 'normal' : 'multiply'}} />
+                            ) : (
+                                <div className="flex flex-col items-center justify-center opacity-30"><ShoppingBag size={24} /></div>
+                            )}
+                        </div>
+
+                        {/* INFO */}
+                        <div className="p-3 flex flex-col flex-grow">
+                            <h3 className={`font-bold text-xs md:text-sm leading-tight mb-2 line-clamp-2 ${isCyber ? 'text-gray-100' : 'text-gray-900'}`}>
+                                {combo.nombre}
+                            </h3>
+                            
+                            {/* DESCRIPCIÓN EN LISTA (Minúscula) */}
+                            <div className="flex-grow mb-3">
+                                {listaProductos ? (
+                                    <ul className={`space-y-0.5 ${isCyber ? 'text-slate-400' : 'text-gray-500'}`}>
+                                        {listaProductos.map((p: any, idx: number) => (
+                                            <li key={idx} className="text-[10px] md:text-xs flex items-start gap-1.5 leading-tight lowercase">
+                                                <span className={`font-bold ${isCyber ? 'text-slate-200' : 'text-gray-700'}`}>
+                                                    {p.cantidad}x
+                                                </span>
+                                                <span className="flex-1">
+                                                    {p.producto?.nombre || p.nombre_manual || 'producto'}
+                                                </span>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                ) : (
+                                    <p className={`text-[10px] md:text-xs lowercase ${isCyber ? 'text-slate-400' : 'text-gray-500'}`}>
+                                        {combo.descripcion}
+                                    </p>
+                                )}
+                            </div>
+                            
+                            <div className="mt-auto pt-2 border-t border-dashed border-opacity-20 flex flex-col gap-2" style={{borderColor: isCyber ? '#ffffff30' : '#00000020'}}>
+                                <div className="flex items-end justify-between">
+                                    <div className={`text-[10px] font-medium line-through ${oldPriceColor}`}>S/ {precioNormal.toFixed(2)}</div>
+                                    <div className={`text-lg md:text-xl font-black leading-none ${priceColor}`}>
+                                        <span className="text-[10px] mr-0.5 align-top opacity-80 font-bold">S/</span>
+                                        {combo.precio_oferta.toFixed(2)}
+                                    </div>
+                                </div>
+                                
+                                {/* --- ZONA DE BOTONES (LÓGICA DEL CARRITO APLICADA) --- */}
+                                <div className="h-9 w-full">
+                                    {itemEnCarrito ? (
+                                        // SI ESTÁ EN EL CARRITO: Usamos decrement/increment igual que Carrito.tsx
+                                        <div className={`flex items-center justify-between w-full h-full rounded-lg overflow-hidden border ${isCyber ? 'bg-slate-800 border-slate-600' : 'bg-gray-50 border-gray-200'}`}>
+                                            
+                                            {/* BOTÓN MENOS (Usa decrement del hook) */}
+                                            <button 
+                                                onClick={() => {
+                                                    // Si es 1, usamos removeFromCart (igual que Carrito visualmente elimina, 
+                                                    // pero aseguramos con removeFromCart si decrement no borra al llegar a 0)
+                                                    if (cantidad === 1) {
+                                                       removeFromCart(idProducto);
+                                                    } else {
+                                                       decrement(idProducto);
+                                                    }
+                                                }}
+                                                className={`h-full px-4 flex items-center justify-center transition-colors hover:bg-red-50 active:bg-red-100 ${isCyber ? 'text-white hover:bg-slate-700' : 'text-gray-600 border-r border-gray-200'}`}
+                                            >
+                                                {cantidad === 1 ? <Trash2 size={16} className="text-red-500"/> : <Minus size={16}/>}
+                                            </button>
+                                            
+                                            {/* CANTIDAD */}
+                                            <span className={`font-black text-sm ${isCyber ? 'text-white' : 'text-gray-900'}`}>
+                                                {cantidad}
+                                            </span>
+
+                                            {/* BOTÓN MÁS (Usa increment del hook) */}
+                                            <button 
+                                                onClick={() => increment(idProducto)}
+                                                className={`h-full px-4 flex items-center justify-center transition-colors hover:bg-green-50 active:bg-green-100 ${isCyber ? 'text-white hover:bg-slate-700' : 'text-gray-600 border-l border-gray-200'}`}
+                                            >
+                                                <Plus size={16}/>
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        // SI NO ESTÁ: Botón agregar normal
+                                        <button 
+                                            onClick={() => addToCart(prepararItemCarrito(combo))}
+                                            className={`w-full h-full rounded-lg flex items-center justify-center gap-2 font-bold text-xs transition-transform active:scale-95 shadow-sm ${
+                                                isCyber 
+                                                ? "bg-purple-600 hover:bg-purple-500 text-white"
+                                                : "bg-gray-900 hover:bg-gray-800 text-white"
+                                            }`}
+                                        >
+                                            <ShoppingCart size={16} /> AGREGAR
+                                        </button>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    )
+                })}
+                </div>
+            ) : (
+                <div className="text-center py-20 bg-white rounded-3xl border-2 border-dashed border-gray-200">
+                    <div className="text-6xl mb-4 opacity-30">📦</div>
+                    <h3 className="text-xl font-bold text-gray-400">No hay ofertas disponibles.</h3>
+                </div>
+            )}
         </section>
       </main>
       <QRCanal />
