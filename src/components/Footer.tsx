@@ -146,7 +146,7 @@ function Footer() {
 
       {/* Botón flotante de WhatsApp con Texto */}
       <a
-        href="https://api.whatsapp.com/send?phone=51994166419&text=Hola,%20tengo%20una%20consulta%20sobre%20sus%20productos."
+        href="https://api.whatsapp.com/send?phone=51912822543&text=Hola,%20tengo%20una%20consulta%20sobre%20sus%20productos."
         target="_blank"
         rel="noopener noreferrer"
         className="fixed bottom-4 right-4 md:bottom-6 md:right-6 bg-[#25D366] hover:bg-[#20bd5a] text-white rounded-full px-4 py-3 md:px-5 shadow-2xl transition-all hover:scale-105 z-50 flex items-center gap-2 group animate-bounce-slow"

@@ -23,6 +23,8 @@ export default function AdminProductos() {
   const [formData, setFormData] = useState({
     nombre: '', descripcion: '', marca: '', categoria: '', presentacion: '',
     precio: '', preciooferta: '', ofertaactiva: false, activo: true,
+    // --- NUEVO: CAMPOS PARA LA CAJA ---
+    tiene_caja: false, precio_caja: '', unidades_por_caja: ''
   })
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [imagePreview, setImagePreview] = useState<string | null>(null)
@@ -84,13 +86,19 @@ export default function AdminProductos() {
         preciooferta: producto.preciooferta?.toString() || '',
         ofertaactiva: producto.ofertaactiva || false,
         activo: producto.activo,
+        // --- NUEVO: CARGAR DATOS DE CAJA SI LOS TIENE ---
+        tiene_caja: !!producto.precio_caja, // si tiene precio de caja, activamos el switch
+        precio_caja: producto.precio_caja?.toString() || '',
+        unidades_por_caja: producto.unidades_por_caja?.toString() || ''
       })
       setImagePreview(producto.imagen_url || null)
     } else {
       setEditingProduct(null)
       setFormData({ 
         nombre: '', descripcion: '', marca: '', categoria: '', presentacion: '', 
-        precio: '', preciooferta: '', ofertaactiva: false, activo: true 
+        precio: '', preciooferta: '', ofertaactiva: false, activo: true,
+        // --- NUEVO ---
+        tiene_caja: false, precio_caja: '', unidades_por_caja: ''
       })
       setImagePreview(null)
     }
@@ -121,6 +129,9 @@ export default function AdminProductos() {
         ofertaactiva: formData.ofertaactiva,
         activo: formData.activo,
         imagen_url: imageUrl,
+        // --- NUEVO: GUARDAR O ANULAR PRECIOS DE CAJA ---
+        precio_caja: formData.tiene_caja && formData.precio_caja ? parseFloat(formData.precio_caja) : null,
+        unidades_por_caja: formData.tiene_caja && formData.unidades_por_caja ? parseInt(formData.unidades_por_caja) : null,
       }
 
       if (editingProduct) await updateProduct(editingProduct.id, productData)
@@ -297,6 +308,10 @@ export default function AdminProductos() {
                            S/ {formatoMoneda(prod.preciooferta || 0)}
                         </span>
                       )}
+                      {/* Mostrar si tiene caja en la tabla sin dañar estilos */}
+                      {prod.precio_caja && (
+                        <span className="text-[10px] text-blue-600 font-bold mt-1">📦 x{prod.unidades_por_caja}: S/{formatoMoneda(prod.precio_caja)}</span>
+                      )}
                     </div>
                   </td>
 
@@ -423,6 +438,30 @@ export default function AdminProductos() {
                     <label className="text-xs font-bold text-gray-500 uppercase tracking-wide mb-1 block">Precio (S/)</label>
                     <input type="number" step="0.01" required className="w-full border border-gray-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-slate-800 outline-none font-bold" 
                         value={formData.precio} onChange={e => setFormData({...formData, precio: e.target.value})} placeholder="0.00" />
+                </div>
+
+                {/* SECCIÓN CAJA / PAQUETE (NUEVO, OCULTO SI NO ESTÁ ACTIVO) */}
+                <div className={`md:col-span-2 p-4 rounded-xl border transition-all duration-300 ${formData.tiene_caja ? 'bg-blue-50 border-blue-200' : 'bg-gray-50 border-gray-200'}`}>
+                    <label className="flex items-center gap-2 cursor-pointer select-none mb-1">
+                        <input type="checkbox" checked={formData.tiene_caja} onChange={e => setFormData({...formData, tiene_caja: e.target.checked})} className="w-5 h-5 text-blue-600 rounded focus:ring-blue-500 border-gray-300" />
+                        <span className={`font-bold ${formData.tiene_caja ? 'text-blue-700' : 'text-gray-500'}`}>Habilitar Venta por Caja / Paquete</span>
+                    </label>
+                    
+                    {/* Campos desplegables */}
+                    {formData.tiene_caja && (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-4 animate-fade-in-up">
+                            <div>
+                                <label className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-1 block">Unidades por Caja</label>
+                                <input type="number" placeholder="Ej. 12" className="w-full border border-blue-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none bg-white" 
+                                    value={formData.unidades_por_caja} onChange={e => setFormData({...formData, unidades_por_caja: e.target.value})} />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-blue-600 uppercase tracking-wide mb-1 block">Precio de la Caja Completa (S/)</label>
+                                <input type="number" step="0.01" placeholder="Ej. 50.00" className="w-full border border-blue-300 rounded-lg px-4 py-2.5 focus:ring-2 focus:ring-blue-500 outline-none font-bold bg-white" 
+                                    value={formData.precio_caja} onChange={e => setFormData({...formData, precio_caja: e.target.value})} />
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* SECCIÓN OFERTA */}

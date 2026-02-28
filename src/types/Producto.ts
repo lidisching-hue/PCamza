@@ -9,14 +9,19 @@ export interface Producto {
   
   // Soporte para ambos nombres (viejo y nuevo)
   preciooferta?: number | null
-  precio_oferta?: number | null  // <--- Nuevo
+  precio_oferta?: number | null  
   ofertaactiva?: boolean
+
+  // --- NUEVO: PRECIOS POR CAJA / PAQUETE ---
+  precio_caja?: number | null
+  unidades_por_caja?: number | null
 
   // Propiedades de Combo
   esCombo?: boolean
-  contenido?: any[]       // Legacy
-  oferta_productos?: any[] // Nuevo
-   // nuevos campos para categrias 
+  contenido?: any[]       
+  oferta_productos?: any[] 
+  
+  // Campos para categorias 
   marca?: string
   presentacion?: string
   categoria?: string

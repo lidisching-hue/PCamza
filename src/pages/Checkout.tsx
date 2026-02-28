@@ -4,7 +4,7 @@ import { useCart } from '../hooks/useCart'
 import { crearPedido, enviarPedidoWhatsApp } from '../services/pedidos'
 import { supabase } from '../lib/supabase'
 
-const WHATSAPP_TIENDA = '51994166419'
+const WHATSAPP_TIENDA = '51912822543'
 
 function Checkout() {
   const { items, clearCart } = useCart()
